@@ -11,7 +11,8 @@ def replace_with_dummy(df, col, baseline_value):
     return df
 
 
-def load_lending_club_dataset(root_dir="../data/lending-club", row_read_limit=None):
+def load_lending_club_dataset(root_dir="../data/lending-club", row_read_limit=None,
+                              missing_threshold=0.7):
     lending = pd.read_csv(os.path.join(root_dir, "accepted_2007_to_2018Q4.csv"),
                           low_memory=False,
                           nrows=row_read_limit)
@@ -23,22 +24,27 @@ def load_lending_club_dataset(root_dir="../data/lending-club", row_read_limit=No
     lending.drop('loan_status', axis=1, inplace=True)
     # Apply threshold for missingness
     frac_missing = lending.isnull().sum(axis=0) / len(lending)
-    threshold = 0.7
-    cols_to_drop = frac_missing[frac_missing >= threshold].index.tolist()
+    cols_to_drop = frac_missing[frac_missing >= missing_threshold].index.tolist()
     print("[INFO] dropping {} columns with >= {} missing obs".format(
-        len(cols_to_drop), threshold))
+        len(cols_to_drop), missing_threshold))
     lending.drop(columns=cols_to_drop, inplace=True)
     # drop some dificult to use coluns. might want to get some data out of emp_title
     # using e.g. wordvectors
     lending.drop(['id', 'emp_title', 'title', 'url'], axis=1, inplace=True)
     # drop grade as sub_grade is more detailed?
     lending.drop('grade', axis=1, inplace=True)
-    # drop last_pymnt_d as it implicitly contains info on defaulting?
-    # similarly, out_prncp.
-    # TODO: check some of these are actually unwanted, and check we didn't miss any
+
+    # Drop columns which are not informative, have excessive cardinality, or which
+    # are highly correlated with other columns
     lending.drop(columns=['last_pymnt_d', 'out_prncp', 'out_prncp_inv', 'recoveries',
+                          'funded_amnt',  # nearly redundant w/amt
+                          'open_il_12m', 'open_il_24m',  # nearly redundant w/open_act_il
+                          'open_rv_24m',  # nearly redundant w/open_rv_12m
+                          'inq_fi', 'total_cu_tl',  # nearly redundant w/inq_last_12m
+                          'mo_sin_old_rev_tl_op', 'mo_sin_rcnt_rev_tl_op',
+                          'mo_sin_rcnt_tl',
                           'collection_recovery_fee',
-                          # 'next_pymnt_d',
+                          'next_pymnt_d',
                           'last_pymnt_amnt', 'total_rec_prncp', 'total_rec_int',
                           'total_rec_late_fee', 'total_pymnt', 'total_pymnt_inv',
                           'last_fico_range_high', 'last_fico_range_low',
@@ -74,6 +80,5 @@ def load_lending_club_dataset(root_dir="../data/lending-club", row_read_limit=No
     lending.drop(columns='zip_code', inplace=True)
     lending = lending.join(census[["szip", "szip_majority"]], how="inner",
                            lsuffix="_census").drop(columns=["szip_census", "szip"])
-    lending.rename(columns={"szip_majority":"sensitive"}, inplace=True)
+    lending.rename(columns={"szip_majority": "sensitive"}, inplace=True)
     return lending
-
