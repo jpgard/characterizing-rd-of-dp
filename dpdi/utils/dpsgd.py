@@ -7,6 +7,7 @@ from math import sqrt
 from math import log as ln
 from numpy.random import default_rng
 from sklearn.linear_model import LinearRegression, RidgeCV
+import pandas as pd
 
 RANDOM_SEED = 983445
 
