@@ -38,7 +38,10 @@ def build_loader(X, y, batch_size=64, shuffle=False):
     inputs = torch.from_numpy(X).double()
     targets = torch.from_numpy(y).double()
     train_ds = torch.utils.data.TensorDataset(inputs, targets)
-    loader = torch.utils.data.DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle)
+    resampling_sampler = torch.utils.data.RandomSampler(train_ds, replacement=True,
+                                                        num_samples=batch_size)
+    loader = torch.utils.data.DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle,
+                                         sampler=resampling_sampler)
     return loader
 
 
@@ -293,17 +296,17 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
     """Function to run the disparity experiments for each dataset."""
     results = list()
     _, _, w_hat_bar_sgd = tail_averaged_sgd(
-        X=train_df.drop(['sensitive', 'target'],axis=1).values,
+        X=train_df.drop(['sensitive', 'target'], axis=1).values,
         y=train_df['target'].values,
         T=T, s=s,
         lr=lr,
         batch_size=1,
         verbose=False
-        )
+    )
 
     for eps in epsgrid:
         _, _, w_hat_bar_dpsgd = dp_sgd(
-            X=train_df.drop(['sensitive', 'target'],axis=1).values,
+            X=train_df.drop(['sensitive', 'target'], axis=1).values,
             y=train_df['target'].values,
             T=T, delta=delta, eps=eps, s=s,
             lr=lr,
@@ -313,7 +316,7 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
         )
 
         disparity_metrics = compute_disparity(
-            X=test_df.drop(['sensitive', 'target'],axis=1).values,
+            X=test_df.drop(['sensitive', 'target'], axis=1).values,
             g=test_df.sensitive.values,
             y=test_df.target.values,
             dpsgd_w_hat=w_hat_bar_dpsgd,
