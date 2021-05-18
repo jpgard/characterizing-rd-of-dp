@@ -286,3 +286,39 @@ def vanilla_sgd(X, y, T, lr, verbose=True, batch_size=64, random_seed=RANDOM_SEE
                 print("[INFO] completed %s iterations of SGD." % t)
                 break
     return iterates, losses
+
+
+def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-1):
+    """Function to run the disparity experiments for each dataset."""
+    results = list()
+    _, _, w_hat_bar_sgd = tail_averaged_sgd(
+        X=train_df.drop(['sensitive', 'target'],axis=1).values,
+        y=train_df['target'].values,
+        T=T, s=s,
+        lr=lr,
+        batch_size=1,
+        verbose=False
+        )
+
+    for eps in epsgrid:
+        _, _, w_hat_bar_dpsgd = dp_sgd(
+            X=train_df.drop(['sensitive', 'target'],axis=1).values,
+            y=train_df['target'].values,
+            T=T, delta=delta, eps=eps, s=s,
+            lr=lr,
+            w_star=wstar,
+            batch_size=1,
+            verbose=False
+        )
+
+        disparity_metrics = compute_disparity(
+            X=test_df.drop(['sensitive', 'target'],axis=1).values,
+            g=test_df.sensitive.values,
+            y=test_df.target.values,
+            dpsgd_w_hat=w_hat_bar_dpsgd,
+            sgd_w_hat=w_hat_bar_sgd,
+            verbose=False
+        )
+        disparity_metrics["eps"] = eps
+        results.append(disparity_metrics)
+    return pd.DataFrame(results)
