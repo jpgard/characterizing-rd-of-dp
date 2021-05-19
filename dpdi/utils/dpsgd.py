@@ -211,7 +211,8 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
 
             t += 1
             if t >= T:
-                print("[INFO] completed %s iterations of DP-SGD." % t)
+                if verbosity > 0:
+                    print("[INFO] completed %s iterations of DP-SGD." % t)
                 break
     w_hat_bar = tail_average_iterates(iterates, T, s)
     return iterates, losses, w_hat_bar
@@ -258,7 +259,8 @@ def tail_averaged_sgd(X, y, T, s, lr, verbosity=2, batch_size=64,
 
             t += 1
             if t >= T:
-                print("[INFO] completed %s iterations of SGD." % t)
+                if verbosity > 0:
+                    print("[INFO] completed %s iterations of SGD." % t)
                 break
     w_hat_bar = tail_average_iterates(iterates, T, s)
     return iterates, losses, w_hat_bar
