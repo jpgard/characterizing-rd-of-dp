@@ -70,7 +70,7 @@ class DspritesDataset(torch.utils.data.Dataset):
     def attribute_annotations(self):
         latent_idx = LATENTS_TO_IDX[self.attribute_colname]
         anno = np.isin(self.latents_values[:, latent_idx],
-                       self.majority_group_keys).flatten()
+                       self.majority_group_latents).flatten()
         return anno
 
     def __len__(self):
