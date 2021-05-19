@@ -30,7 +30,8 @@ TRIPLET_YIELDING_DATASETS = ('celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsp
 
 # These are datasets where we explicitly track performance according to some majority/minority
 # attribute defined in the params.
-MINORITY_PERFORMANCE_TRACK_DATASETS = ('celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites')
+MINORITY_PERFORMANCE_TRACK_DATASETS = (
+    'celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites')
 
 
 def maybe_override_parameter(params: dict, args, parameter_name: str):
@@ -341,10 +342,10 @@ def test(net, epoch, name, testloader, vis=True, mse: bool = False,
             plot(epoch, avg_test_loss, 'test_crossentropy_loss')
             for l in cls_labels:
                 plot(epoch, mean_of_tensor_list(loss_by_label[l]), 'test_loss_per_class/{}'.format(l))
-            for a in attributes:
-                plot(epoch, mean_of_tensor_list(loss_by_attribute[a]), 'test_loss_per_attr/{}'.format(a))
             for k in keys:
                 plot(epoch, mean_of_tensor_list(loss_by_key[k]), 'test_loss_per_key/{}'.format(k))
+        for a in attributes:
+            plot(epoch, mean_of_tensor_list(loss_by_attribute[a]), 'test_loss_per_attr/{}'.format(a))
         for i, class_name in enumerate(cls_labels):
             if not mse:
                 metric_value = cm[i][i] / cm[i].sum() * 100
