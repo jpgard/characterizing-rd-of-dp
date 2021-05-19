@@ -308,7 +308,7 @@ def test(net, epoch, name, testloader, vis=True, mse: bool = False,
                 predict_labels.extend([x.item() for x in predicted])
                 correct_labels.extend([x.item() for x in preprocessed_labels])
                 running_metric_total += (predicted == preprocessed_labels).sum().item()
-                main_test_metric = 100 * running_metric_total / n_test
+                main_test_metric = running_metric_total / n_test
                 elementwise_loss = ce_loss(outputs, preprocessed_labels)
                 running_ce_loss_total += torch.mean(elementwise_loss).item()
                 for l in cls_labels:
@@ -316,7 +316,7 @@ def test(net, epoch, name, testloader, vis=True, mse: bool = False,
             else:
                 elementwise_loss = compute_mse(torch.squeeze(outputs),
                                                torch.squeeze(preprocessed_labels))
-                running_metric_total += torch.mean(elementwise_loss)
+                running_metric_total += torch.sum(elementwise_loss)
                 main_test_metric = running_metric_total / n_test
 
             if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:
