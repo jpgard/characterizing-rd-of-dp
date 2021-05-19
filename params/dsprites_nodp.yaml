@@ -9,14 +9,12 @@ epochs: 120
 save_on_epochs: [60, 119]
 criterion: mse
 
-#mu: 1.0
-#ds_size: 70000
-
 save_model: True
 dataset: dsprites
 model: regressionnet
 scheduler: False
 optimizer: Adam
+fixed_n_train: 248000
 
 root_dir: /projects/grail/jpgard/dsprites
 

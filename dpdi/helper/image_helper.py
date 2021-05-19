@@ -182,7 +182,8 @@ class ImageHelper(Helper):
             drop_last=True)
     
     def load_dsprites_data(self):
-        self.train_dataset = DspritesDataset(self.params['root_dir'], True, True)
+        self.train_dataset = DspritesDataset(self.params['root_dir'], True, True,
+                                             alpha=self.params['alpha'])
         self.test_dataset = DspritesDataset(self.params['root_dir'], False, True)
         self.unnormalized_test_dataset = DspritesDataset(self.params['root_dir'], 
                                                          False, False)
