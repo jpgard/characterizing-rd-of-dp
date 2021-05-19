@@ -188,6 +188,7 @@ class ImageHelper(Helper):
         self.unnormalized_test_dataset = DspritesDataset(self.params['root_dir'], 
                                                          False, False)
         self.create_loaders()
+        self.dataset_size = len(self.train_dataset)
 
     def load_cifar_or_mnist_data(self, dataset, classes_to_keep=None,
                                  labels_mapping:dict=None,
@@ -429,6 +430,7 @@ class ImageHelper(Helper):
         )
 
         self.create_loaders()
+        self.dataset_size = len(self.train_dataset)
 
 
     def load_celeba_data(self):
