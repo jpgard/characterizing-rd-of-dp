@@ -234,7 +234,7 @@ def compute_mse(outputs: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
             outputs.shape, labels.shape
         )
     mse = (outputs - labels) ** 2
-    return torch.mean(mse)
+    return mse
 
 
 
@@ -248,7 +248,7 @@ def per_class_mse(outputs, labels, target_class, grouped_label=None) -> torch.Te
     else:
         # Use the existing labels tensor, with all values equal to target_class
         per_class_labels = labels[per_class_idx]
-    mse_per_class = compute_mse(per_class_outputs, per_class_labels)
+    mse_per_class = torch.mean(compute_mse(per_class_outputs, per_class_labels))
     return mse_per_class
 
 
@@ -308,23 +308,26 @@ def test(net, epoch, name, testloader, vis=True, mse: bool = False,
                 correct_labels.extend([x.item() for x in preprocessed_labels])
                 running_metric_total += (predicted == preprocessed_labels).sum().item()
                 main_test_metric = 100 * running_metric_total / n_test
-                batch_ce_loss = ce_loss(outputs, preprocessed_labels)
-                running_ce_loss_total += torch.mean(batch_ce_loss).item()
+                elementwise_loss = ce_loss(outputs, preprocessed_labels)
+                running_ce_loss_total += torch.mean(elementwise_loss).item()
                 for l in cls_labels:
-                    loss_by_label[l].extend(batch_ce_loss[preprocessed_labels == l])
-                if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:
-                    # batch_attr_labels is an array of shape [batch_size] where the
-                    # ith entry is either 1/0/nan and correspond to the attribute labels
-                    # of the ith element in the batch.
-                    batch_attr_labels = helper.test_dataset.get_attribute_annotations(idxs)
-                    for a in attributes:
-                        loss_by_attribute[a].extend(batch_ce_loss[idx_where_true(batch_attr_labels == a)])
-                    for k in keys:
-                        loss_by_key[k].extend(batch_ce_loss[idx_where_true(labels == k)])
+                    loss_by_label[l].extend(elementwise_loss[preprocessed_labels == l])
             else:
-                running_metric_total += compute_mse(torch.squeeze(outputs),
-                                                    torch.squeeze(preprocessed_labels))
+                elementwise_loss = compute_mse(torch.squeeze(outputs),
+                                               torch.squeeze(preprocessed_labels))
+                running_metric_total += torch.mean(elementwise_loss)
                 main_test_metric = running_metric_total / n_test
+
+            if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:
+                # batch_attr_labels is an array of shape [batch_size] where the
+                # ith entry is either 1/0/nan and correspond to the attribute labels
+                # of the ith element in the batch.
+                batch_attr_labels = helper.test_dataset.get_attribute_annotations(idxs)
+                for a in attributes:
+                    loss_by_attribute[a].extend(
+                        elementwise_loss[idx_where_true(batch_attr_labels == a)])
+                for k in keys:
+                    loss_by_key[k].extend(elementwise_loss[idx_where_true(labels == k)])
 
     if vis:
         plot(epoch, main_test_metric, metric_name)
