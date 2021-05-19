@@ -158,16 +158,21 @@ def tail_average_iterates(w, T, s):
     return np.vstack(w[-(T - s):]).mean(axis=0)
 
 
-def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbose=True, batch_size=64,
+def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
            random_seed=RANDOM_SEED):
-    """Implements Algorithm 1 (DP-SGD), with fixed seed for reproducibility."""
+    """Implements Algorithm 1 (DP-SGD), with fixed seed for reproducibility.
+
+    Verbosity: 0 = no output; 1 = print basic DP-SGD quantities; 2 = print DP-SGD quantities
+        plus loss at each iteration.
+    """
     torch.manual_seed(random_seed)
     n, d = X.shape
     assert d == len(w_star), "shape mismatch between X and w_star"
     # Compute the various constants needed for the algorithm.
     L_1, L_2, L_3, k = compute_L_and_k(X, y, w_star, n, T, delta)
     sigma_dp = compute_sigma_dp(L_1, L_2, L_3, k=k, delta=delta, eps=eps, n=n)
-    print_dpsgd_diagnostics(L_1, L_2, L_3, k=k, sigma_dp=sigma_dp, n=n, delta=delta)
+    if verbosity > 0:
+        print_dpsgd_diagnostics(L_1, L_2, L_3, k=k, sigma_dp=sigma_dp, n=n, delta=delta)
 
     # Initialization
     loader = build_loader(X, y, batch_size)
@@ -200,7 +205,7 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbose=True, batch_size=64,
                 iterates.append(iterate_numpy)
                 losses.append(loss_numpy)
 
-            if verbose and (t % 1000 == 0):
+            if verbosity > 1 and (t % 1000 == 0):
                 print(
                     "iteration {} loss: {} new w_hat: {}".format(t, loss, iterate_numpy))
 
@@ -212,10 +217,13 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbose=True, batch_size=64,
     return iterates, losses, w_hat_bar
 
 
-def tail_averaged_sgd(X, y, T, s, lr, verbose=True, batch_size=64,
+def tail_averaged_sgd(X, y, T, s, lr, verbosity=2, batch_size=64,
                       random_seed=RANDOM_SEED):
     """Implements tail-averaged SGD. This is DP-SGD but with no projection step and no
-    noise."""
+    noise.
+
+    Verbosity: 0 = no output; if > 0, print loss at each iteration.
+    """
     torch.manual_seed(random_seed)
     n, d = X.shape
 
@@ -244,7 +252,7 @@ def tail_averaged_sgd(X, y, T, s, lr, verbose=True, batch_size=64,
                 iterates.append(iterate_numpy)
                 losses.append(loss_numpy)
 
-            if verbose and (t % 1000 == 0):
+            if verbosity > 0 and (t % 1000 == 0):
                 print(
                     "iteration {} loss: {} new w_hat: {}".format(t, loss, iterate_numpy))
 
@@ -292,7 +300,8 @@ def vanilla_sgd(X, y, T, lr, verbose=True, batch_size=64, random_seed=RANDOM_SEE
     return iterates, losses
 
 
-def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-1):
+def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-1,
+                          verbosity=1):
     """Function to run the disparity experiments for each dataset."""
     results = list()
     _, _, w_hat_bar_sgd = tail_averaged_sgd(
@@ -301,7 +310,7 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
         T=T, s=s,
         lr=lr,
         batch_size=1,
-        verbose=False
+        verbosity=verbosity
     )
 
     for eps in epsgrid:
@@ -312,7 +321,7 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
             lr=lr,
             w_star=wstar,
             batch_size=1,
-            verbose=False
+            verbosity=verbosity
         )
 
         disparity_metrics = compute_disparity(
