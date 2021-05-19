@@ -326,3 +326,50 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
         disparity_metrics["eps"] = eps
         results.append(disparity_metrics)
     return pd.DataFrame(results)
+
+
+def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
+                                delta: float, gamma: float, T: int, s: int,
+                                w_star,
+                                sigma_noise=1.):
+    attrs = df['sensitive'].values
+    alpha = attrs.mean()
+    X = df.drop(columns=['target', 'sensitive']).values
+    y = df['target'].values
+    w_init = np.zeros_like(w_star)
+    n, d = X.shape
+    H_j = np.cov(X[attrs == j], rowvar=False)
+    H = np.cov(X, rowvar=False)
+    H_inv = np.linalg.pinv(H)
+    #  mu is the smallest eigenvalue of H, but we ignore the intercept term
+    # . which is associated with an eigenvalue of zero.
+    mu = np.sort(np.linalg.eigvals(H))[1]
+    L_1, L_2, L_3, k = compute_L_and_k(X, y, w_star, n, T, delta)
+    sigma_dp = compute_sigma_dp(L_1, L_2, L_3, k=k, delta=delta, eps=eps, n=n)
+    bias_term = (2 / (gamma * T * mu * alpha) ** 2) \
+                * (1 - gamma * mu) ** (s + 1) \
+                * (compute_mse(X, y, w_init) - compute_mse(X, y, w_star))
+    variance_term = (2 / T) * \
+                    np.trace(H_j @ H_inv
+                             @ (sigma_noise ** 2 * H + sigma_dp * np.eye(d))
+                             @ H_inv)
+    resamp_term = ((2 / n) * ((1 + T ** 2 * gamma) / (T * gamma)) *
+                   np.trace(H_j @ H_inv * sigma_noise ** 2))
+    results = {
+        "bias_term": bias_term,
+        "variance_term": variance_term,
+        "resamp_term": resamp_term,
+        "bound": bias_term + variance_term + resamp_term
+    }
+    return results
+
+
+def bound_summary(df, eps, delta, gamma, T, s, w_star):
+    bound_major = compute_subgroup_loss_bound(
+        df, j=1, eps=eps, delta=delta, gamma=gamma,
+        T=T, s=s, w_star=w_star)
+    bound_minor = compute_subgroup_loss_bound(
+        df, j=0, eps=eps, delta=delta, gamma=gamma,
+        T=T, s=s, w_star=w_star)
+    return (pd.DataFrame({1: bound_major, 0: bound_minor}))
+
