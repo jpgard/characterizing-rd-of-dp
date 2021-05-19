@@ -556,7 +556,8 @@ if __name__ == '__main__':
     with open(args.params) as f:
         params = yaml.load(f)
 
-    for pname in ("train_attribute_subset", 'sigma', 'epochs'):
+    for pname in ("train_attribute_subset", 'sigma', 'epochs', 'alpha',
+                  'number_of_entries_train'):
         maybe_override_parameter(params, args, pname)
 
     name = make_uid(params, args)
