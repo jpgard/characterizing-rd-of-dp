@@ -9,6 +9,8 @@ from numpy.random import default_rng
 from sklearn.linear_model import LinearRegression, RidgeCV
 import pandas as pd
 import math
+import itertools
+from collections import defaultdict
 
 RANDOM_SEED = 983445
 
@@ -377,9 +379,13 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     return results
 
 
+def sensitive_subgroup_indices(df, i):
+    return np.nonzero(df.sensitive.values == i)[0]
+
+
 def compute_nmax(df, alpha_grid):
-    n_0 = len(np.nonzero(df.sensitive.values == 0)[0])
-    n_1 = len(np.nonzero(df.sensitive.values == 1)[0])
+    n_0 = len(sensitive_subgroup_indices(df, 0))
+    n_1 = len(sensitive_subgroup_indices(df, 1))
     alpha_min = min(alpha_grid)
     alpha_max = max(alpha_grid)
     # Compute limit on total size n given the largest number of minority samples needed
@@ -394,28 +400,28 @@ def compute_nmax(df, alpha_grid):
 
 
 def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=1e-1,
-                      alpha_grid=(0.7, 0.8, 0.9), niters=5, n_max=None, verbose=1):
+                      alpha_grid=(0.7, 0.8, 0.9), niters=5, n_max=None, verbosity=1):
     n = len(df)
     T = n - s
     g = df.sensitive.values
-    idxs_0 = np.nonzero(df.sensitive.values == 0)[0]
+    idxs_0 = sensitive_subgroup_indices(df, 0)
     n_0 = len(idxs_0)
-    idxs_1 = np.nonzero(df.sensitive.values == 1)[0]
+    idxs_1 = sensitive_subgroup_indices(df, 1)
     n_1 = len(idxs_1)
     if n_max is None:
         n_max = compute_nmax(df, alpha_grid)
     results = list()
-    if verbose > 0:
+    if verbosity > 0:
         print("N = {}, n_0 = {}, n_1 = {}".format(n, n_0, n_1))
     for iternum in range(niters):
         for alpha in alpha_grid:
             n_0_sample = math.floor((1 - alpha) * n_max)
             n_1_sample = math.floor(alpha * n_max)
-            if verbose > 0:
+            if verbosity > 0:
                 print("[INFO] sampling {} / {} from 1".format(n_1_sample, n_1))
                 print("[INFO] sampling {} / {} from 0".format(n_0_sample, n_0))
             idxs_sample_0 = np.random.choice(idxs_0, size=n_0_sample, replace=False)
-            idxs_sample_1 = np.random.choice(idxs_1, size=n_1_sample,  replace=False)
+            idxs_sample_1 = np.random.choice(idxs_1, size=n_1_sample, replace=False)
             # subset the data
             df_alpha = pd.concat((df.iloc[idxs_sample_0], df.iloc[idxs_sample_1]), axis=0)
             # Compute dpsgd
@@ -442,11 +448,56 @@ def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=
                 y=df_alpha.target.values,
                 dpsgd_w_hat=w_hat_bar_dpsgd,
                 sgd_w_hat=w_hat_bar_sgd,
-                verbose=False
+                verbosity=False
             )
             disparity_metrics["iternum"] = iternum
             disparity_metrics["alpha"] = alpha
             results.append(disparity_metrics)
+    return results
+
+
+def together_apart_experiments(df_train, df_test, s_union: int, s_minor, s_major,
+                                  lr: float, verbosity=1):
+    train_sets = dict()
+    test_sets = dict()
+    w_hats = dict()
+    train_sets["01"] = df_train
+    train_sets["0"] = df_train.iloc[sensitive_subgroup_indices(df_train, 0)]
+    train_sets["1"] = df_train.iloc[sensitive_subgroup_indices(df_train, 1)]
+    test_sets["01"] = df_test
+    test_sets["0"] = df_test.iloc[sensitive_subgroup_indices(df_test, 0)]
+    test_sets["1"] = df_test.iloc[sensitive_subgroup_indices(df_test, 1)]
+
+    # Train on union
+    _, _, w_hat_bar_sgd_union = tail_averaged_sgd(
+        X=df_train.drop(['sensitive', 'target'], axis=1).values,
+        y=df_train['target'].values,
+        T=len(df_train) - s_union, s=s_union, lr=lr, batch_size=1, verbosity=0)
+    w_hats["01"] = w_hat_bar_sgd_union
+    # Train on minority
+    _, _, w_hat_bar_sgd_0 = tail_averaged_sgd(
+        X=train_sets["0"].drop(['sensitive', 'target'], axis=1).values,
+        y=train_sets["0"]['target'].values,
+        T=len(train_sets["0"]) - s_minor, s=s_minor,
+        lr=lr, batch_size=1, verbosity=0)
+    w_hats["0"] = w_hat_bar_sgd_0
+    # Train on majority
+    _, _, w_hat_bar_sgd_1 = tail_averaged_sgd(
+        X=train_sets["1"].drop(['sensitive', 'target'], axis=1).values,
+        y=train_sets["1"]['target'].values,
+        T=len(train_sets["1"]) - s_major, s=s_major,
+        lr=lr, batch_size=1, verbosity=0)
+    w_hats["1"] = w_hat_bar_sgd_1
+    # Compute test metrics
+    results = list()  # list of (train_subset, test_subset, err) tuples.
+    for train_subset, test_subset in itertools.product(train_sets.keys(),
+                                                       test_sets.keys()):
+        w_hat = w_hats[train_subset]
+        X_test = test_sets[test_subset].drop(['sensitive', 'target'],axis=1).values
+        y_test = test_sets[test_subset]['target'].values
+        err = compute_mse(X_test, y_test, w_hat)
+        results.append((train_subset, test_subset, err))
+    results = pd.DataFrame(results, columns=["train", "test", "err"])
     return results
 
 
