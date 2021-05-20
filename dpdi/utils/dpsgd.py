@@ -377,7 +377,7 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
 
 
 def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=1e-1,
-                      alpha_grid=(0.7, 0.8, 0.9), niters=5, n_max=None):
+                      alpha_grid=(0.7, 0.8, 0.9), niters=5, n_max=None, verbose=1):
     T = len(df) - s
     g = df.sensitive.values
     idxs_0 = np.nonzero(df.sensitive.values == 0)[0]
@@ -387,12 +387,13 @@ def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=
     results = list()
     for iternum in range(niters):
         for alpha in alpha_grid:
-            idxs_sample_0 = np.random.choice(idxs_0,
-                                             size=(1 - alpha) * n_max,
-                                             replace=False)
-            idxs_sample_1 = np.random.choice(idxs_1,
-                                             size=alpha * n_max,
-                                             replace=False)
+            n_0_sample = int((1 - alpha) * n_max)
+            n_1_sample = int(alpha * n_max)
+            if verbose > 0:
+                print("[INFO] sampling {} / {} from 1".format(n_1_sample, len(idxs_1)))
+                print("[INFO] sampling {} / {} from 0".format(n_0_sample, len(idxs_0)))
+            idxs_sample_0 = np.random.choice(idxs_0, size=n_0_sample, replace=False)
+            idxs_sample_1 = np.random.choice(idxs_1, size=n_1_sample,  replace=False)
             # subset the data
             df_alpha = pd.concat((df.iloc[idxs_sample_0], df.iloc[idxs_sample_1]), axis=0)
             # Compute dpsgd
