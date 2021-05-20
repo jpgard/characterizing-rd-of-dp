@@ -162,7 +162,8 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
            random_seed=RANDOM_SEED):
     """Implements Algorithm 1 (DP-SGD), with fixed seed for reproducibility.
 
-    Verbosity: 0 = no output; 1 = print basic DP-SGD quantities; 2 = print DP-SGD quantities
+    Verbosity: 0 = no output; 1 = print basic DP-SGD quantities; 2 = print DP-SGD
+    quantities
         plus loss at each iteration.
     """
     torch.manual_seed(random_seed)
@@ -375,6 +376,53 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     return results
 
 
+def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=1e-1,
+                      alpha_grid=(0.7, 0.8, 0.9), niters=5):
+    T = len(df) - s
+    g = df.sensitive.values
+    idxs_0 = np.nonzero(df.sensitive.values == 0)[0]
+    idxs_1 = np.nonzero(df.sensitive.values == 1)[0]
+    n_max = len(idxs_1)
+    results = list()
+    for iternum in range(niters):
+        for alpha in alpha_grid:
+            idxs_sample_0 = np.random.choice(idxs_0, size=(1 - alpha) * n_max,
+                                             replace=False)
+            idxs_sample_1 = np.random.choice(idxs_1, size=alpha * n_max, replace=False)
+            # subset the data
+            df_alpha = pd.concat((df.iloc[idxs_sample_0], df.iloc[idxs_sample_1]), axis=0)
+            # Compute dpsgd
+            _, _, w_hat_bar_sgd = tail_averaged_sgd(
+                X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
+                y=df_alpha['target'].values,
+                T=T, s=s,
+                lr=lr,
+                batch_size=1,
+                verbosity=0
+            )
+            _, _, w_hat_bar_dpsgd = dp_sgd(
+                X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
+                y=df_alpha['target'].values,
+                T=T, delta=delta, eps=eps, s=s,
+                lr=lr,
+                w_star=wstar,
+                batch_size=1,
+                verbosity=0
+            )
+            disparity_metrics = compute_disparity(
+                X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
+                g=df_alpha.sensitive.values,
+                y=df_alpha.target.values,
+                dpsgd_w_hat=w_hat_bar_dpsgd,
+                sgd_w_hat=w_hat_bar_sgd,
+                verbose=False
+            )
+            disparity_metrics["iternum"] = iternum
+            disparity_metrics["alpha"] = alpha
+            results.append(disparity_metrics)
+    return results
+
+
 def bound_summary(df, eps, delta, gamma, T, s, w_star):
     bound_major = compute_subgroup_loss_bound(
         df, j=1, eps=eps, delta=delta, gamma=gamma,
@@ -383,4 +431,3 @@ def bound_summary(df, eps, delta, gamma, T, s, w_star):
         df, j=0, eps=eps, delta=delta, gamma=gamma,
         T=T, s=s, w_star=w_star)
     return (pd.DataFrame({1: bound_major, 0: bound_minor}))
-
