@@ -377,18 +377,22 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
 
 
 def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=1e-1,
-                      alpha_grid=(0.7, 0.8, 0.9), niters=5):
+                      alpha_grid=(0.7, 0.8, 0.9), niters=5, n_max=None):
     T = len(df) - s
     g = df.sensitive.values
     idxs_0 = np.nonzero(df.sensitive.values == 0)[0]
     idxs_1 = np.nonzero(df.sensitive.values == 1)[0]
-    n_max = len(idxs_1)
+    if n_max is None:
+        n_max = len(idxs_1)
     results = list()
     for iternum in range(niters):
         for alpha in alpha_grid:
-            idxs_sample_0 = np.random.choice(idxs_0, size=(1 - alpha) * n_max,
+            idxs_sample_0 = np.random.choice(idxs_0,
+                                             size=(1 - alpha) * n_max,
                                              replace=False)
-            idxs_sample_1 = np.random.choice(idxs_1, size=alpha * n_max, replace=False)
+            idxs_sample_1 = np.random.choice(idxs_1,
+                                             size=alpha * n_max,
+                                             replace=False)
             # subset the data
             df_alpha = pd.concat((df.iloc[idxs_sample_0], df.iloc[idxs_sample_1]), axis=0)
             # Compute dpsgd
