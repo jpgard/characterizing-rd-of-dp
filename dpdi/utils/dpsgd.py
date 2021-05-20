@@ -498,6 +498,7 @@ def together_apart_experiments(df_train, df_test, s_union: int, s_minor, s_major
         err = compute_mse(X_test, y_test, w_hat)
         results.append((train_subset, test_subset, err))
     results = pd.DataFrame(results, columns=["train", "test", "err"])
+    results.replace({"01": "Union", "1": "Majority", "0": "Minority"}, inplace=True)
     return results
 
 
