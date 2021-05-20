@@ -8,6 +8,7 @@ from math import log as ln
 from numpy.random import default_rng
 from sklearn.linear_model import LinearRegression, RidgeCV
 import pandas as pd
+import math
 
 RANDOM_SEED = 983445
 
@@ -376,6 +377,22 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     return results
 
 
+def compute_nmax(df, alpha_grid):
+    n_0 = len(np.nonzero(df.sensitive.values == 0)[0])
+    n_1 = len(np.nonzero(df.sensitive.values == 1)[0])
+    alpha_min = min(alpha_grid)
+    alpha_max = max(alpha_grid)
+    # Compute limit on total size n given the largest number of minority samples needed
+    n_max_0 = math.floor(n_0 / float(1 - alpha_min))
+    # Compute limit on total size n given the largest number of majority samples needed
+    n_max_1 = math.floor(n_1 / float(alpha_max))
+    if n_max_0 < n_max_1:
+        print("[INFO] max sample size is {} constrained by minority".format(n_max_0))
+    else:
+        print("[INFO] max sample size is {} constrained by majority".format(n_max_1))
+    return min(n_max_0, n_max_1)
+
+
 def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=1e-1,
                       alpha_grid=(0.7, 0.8, 0.9), niters=5, n_max=None, verbose=1):
     T = len(df) - s
@@ -383,12 +400,12 @@ def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=
     idxs_0 = np.nonzero(df.sensitive.values == 0)[0]
     idxs_1 = np.nonzero(df.sensitive.values == 1)[0]
     if n_max is None:
-        n_max = len(idxs_1)
+        n_max = compute_nmax(df, alpha_grid)
     results = list()
     for iternum in range(niters):
         for alpha in alpha_grid:
-            n_0_sample = int((1 - alpha) * n_max)
-            n_1_sample = int(alpha * n_max)
+            n_0_sample = math.floor((1 - alpha) * n_max)
+            n_1_sample = math.floor(alpha * n_max)
             if verbose > 0:
                 print("[INFO] sampling {} / {} from 1".format(n_1_sample, len(idxs_1)))
                 print("[INFO] sampling {} / {} from 0".format(n_0_sample, len(idxs_0)))
