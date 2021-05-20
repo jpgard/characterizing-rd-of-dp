@@ -448,7 +448,7 @@ def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=
                 y=df_alpha.target.values,
                 dpsgd_w_hat=w_hat_bar_dpsgd,
                 sgd_w_hat=w_hat_bar_sgd,
-                verbosity=False
+                verbose=False
             )
             disparity_metrics["iternum"] = iternum
             disparity_metrics["alpha"] = alpha
@@ -457,7 +457,7 @@ def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=
 
 
 def together_apart_experiments(df_train, df_test, s_union: int, s_minor, s_major,
-                                  lr: float, verbosity=1):
+                               lr: float):
     train_sets = dict()
     test_sets = dict()
     w_hats = dict()
@@ -493,7 +493,7 @@ def together_apart_experiments(df_train, df_test, s_union: int, s_minor, s_major
     for train_subset, test_subset in itertools.product(train_sets.keys(),
                                                        test_sets.keys()):
         w_hat = w_hats[train_subset]
-        X_test = test_sets[test_subset].drop(['sensitive', 'target'],axis=1).values
+        X_test = test_sets[test_subset].drop(['sensitive', 'target'], axis=1).values
         y_test = test_sets[test_subset]['target'].values
         err = compute_mse(X_test, y_test, w_hat)
         results.append((train_subset, test_subset, err))
