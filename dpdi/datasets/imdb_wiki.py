@@ -101,7 +101,7 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
         return sample
 
     def get_attribute_annotations(self, idxs):
-        idx_annos = self.attributesidxs]
+        idx_annos = self.attributes[idxs]
         return idx_annos
 
     def apply_alpha_to_dataset(self, alpha, n_train):
