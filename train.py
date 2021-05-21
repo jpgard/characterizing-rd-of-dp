@@ -643,7 +643,11 @@ if __name__ == '__main__':
                 and args.channelwise_mean:
             compute_channelwise_mean(helper.train_loader)
 
+    from opacus import PrivacyEngine
     optimizer = get_optimizer(helper)
+    if dp:
+        privacy_engine = PrivacyEngine(net, sample_rate=0.001, noise_multiplier=sigma, max_grad_norm=S)
+        privacy_engine.attach(optimizer)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                      milestones=[0.5 * epochs,
@@ -661,12 +665,7 @@ if __name__ == '__main__':
 
     try:
         for epoch in range(helper.start_epoch, epochs):
-            if dp:
-                train_dp(helper.train_loader, net, optimizer, epoch,
-                         labels_mapping=true_labels_to_binary_labels,
-                         sigma=sigma, alpha=alpha, adaptive_sigma=adaptive_sigma)
-            else:
-                train(helper.train_loader, net, optimizer, epoch,
+            train(helper.train_loader, net, optimizer, epoch,
                       labels_mapping=true_labels_to_binary_labels)
             if helper.params['scheduler']:
                 scheduler.step()
