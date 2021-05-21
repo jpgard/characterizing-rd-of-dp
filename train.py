@@ -589,7 +589,7 @@ if __name__ == '__main__':
     # If clipping bound S is not specified, it is set to inf.
     S = float(helper.params['S']) if helper.params.get('S') else None
     sigma = helper.params.get('sigma')
-    if (not sigma) and z:
+    if (sigma is None) and z:
         sigma = z * S
     else:
         raise ValueError("Must either specify sigma, "
