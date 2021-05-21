@@ -456,6 +456,8 @@ class ImageHelper(Helper):
     def load_imdb_wiki_data(self):
         self.train_dataset = IMDBWikiDataset(self.params['root_dir'],
                                              is_train=True, normalize=True)
+        self.train_dataset.apply_alpha_to_dataset(self.params.get('alpha'),
+                                                  self.params.get('n_train'))
         self.test_dataset = IMDBWikiDataset(self.params['root_dir'],
                                             is_train=False, normalize=True)
         self.unnormalized_test_dataset = IMDBWikiDataset(self.params['root_dir'],
