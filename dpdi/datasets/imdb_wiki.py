@@ -127,7 +127,7 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
             sample_idx_0 = np.random.choice(self.minority_idxs, size=n_min,
                                             replace=False)
             idx_sample = np.concatenate((sample_idx_1, sample_idx_0))
-            self.anno = self.anno[idx_sample]
+            self.anno = self.anno.iloc[idx_sample]
             assert len(self) == (n_min + n_maj), "Sanity check for self subsetting."
             assert abs(float(len(sample_idx_0)) / len(self) - (1 - alpha)) < \
                    0.001, "Sanity check for minority size within 0.001 of (1-alpha)."
