@@ -72,16 +72,20 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
         return self.anno[self.fp_colname].values
 
     @property
+    def attributes(self):
+        return self.anno[self.attribute_colname].values
+
+    @property
     def targets(self):
         return np.expand_dims(self.anno[self.target_colname].values, 1).astype(float)
 
     @property
     def majority_idxs(self):
-        return np.argwhere(np.isin(self.targets, self.majority_group_keys))[0]
+        return np.argwhere(np.isin(self.attributes, self.majority_group_keys))[0]
 
     @property
     def minority_idxs(self):
-        return np.argwhere(np.isin(self.targets, self.minority_group_keys))[0]
+        return np.argwhere(np.isin(self.attributes, self.minority_group_keys))[0]
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
@@ -97,7 +101,7 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
         return sample
 
     def get_attribute_annotations(self, idxs):
-        idx_annos = self.anno[self.attribute_colname].values[idxs]
+        idx_annos = self.attributesidxs]
         return idx_annos
 
     def apply_alpha_to_dataset(self, alpha, n_train):
