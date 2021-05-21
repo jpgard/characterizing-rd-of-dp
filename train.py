@@ -588,13 +588,12 @@ if __name__ == '__main__':
     z = helper.params.get('z')
     # If clipping bound S is not specified, it is set to inf.
     S = float(helper.params['S']) if helper.params.get('S') else None
-    if helper.params.get('S') and (helper.params.get('S') != 'inf'):
-        # Case: clipping bound S is specified; use this to compute sigma.
+    sigma = helper.params.get('sigma')
+    if (not sigma) and z:
         sigma = z * S
     else:
-        # Case: clipping bound S is not specified (no clipping);
-        # sigma must be set explicitly in the params.
-        sigma = helper.params.get('sigma')
+        raise ValueError("Must either specify sigma, "
+                         "or z (which will be used to compute sigma).")
     alpha = args.alpha
     adaptive_sigma = helper.params.get('adaptive_sigma', False)
     dp = helper.params['dp']
