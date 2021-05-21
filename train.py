@@ -551,6 +551,8 @@ if __name__ == '__main__':
                         default=None, type=float)
     parser.add_argument("--epochs", help="Optional argument to override epochs in params.",
                         default=None, type=int)
+    parser.add_argument("--lr", type=float, default=None,
+                        help="Optional argument to override lr in params.")
     args = parser.parse_args()
     d = datetime.now().strftime('%b.%d_%H.%M.%S')
 
