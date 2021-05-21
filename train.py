@@ -554,6 +554,10 @@ if __name__ == '__main__':
                         default=None, type=int)
     parser.add_argument("--lr", type=float, default=None,
                         help="Optional argument to override lr in params.")
+    parser.add_argument("--channelwise_mean", type=bool, action="store_true",
+                        default=False,
+                        help="If true, will print the mean and STD of the"
+                             "dataset by channel prior to beginning training.")
     args = parser.parse_args()
     d = datetime.now().strftime('%b.%d_%H.%M.%S')
 
@@ -635,7 +639,8 @@ if __name__ == '__main__':
                                        labels_mapping=true_labels_to_binary_labels)
 
         # Skip channelwise mean for MNIST; it only has one channel and means are known.
-        if helper.params['dataset'] not in SINGLE_CHANNEL_DATASETS:
+        if helper.params['dataset'] not in SINGLE_CHANNEL_DATASETS \
+                and args.channelwise_mean:
             compute_channelwise_mean(helper.train_loader)
 
     optimizer = get_optimizer(helper)
