@@ -24,7 +24,7 @@ def get_resnet_extractor(num_classes, freeze_pretrained_weights: bool):
 
 
 def get_pretrained_resnet(num_classes, freeze_pretrained_weights: bool,
-                          resnet_depth:int=None):
+                          resnet_depth:int=None, convert_batchnorm_modules=False):
     """Fetch a pretrained resnet with a new FC layer with num_classes.
     """
     if resnet_depth is None or resnet_depth == 18:
@@ -42,6 +42,14 @@ def get_pretrained_resnet(num_classes, freeze_pretrained_weights: bool,
         # Set the last layer to be trainable
         for parameter in net.fc.parameters():
             parameter.requires_grad = True
+    if convert_batchnorm_modules:
+        # see https://opacus.ai/tutorials/building_image_classifier#Model
+        from opacus.dp_model_inspector import DPModelInspector
+        from opacus.utils import module_modification
+        print("[DEBUG] removing batchnorm modules from net")
+        net = module_modification.convert_batchnorm_modules(net)
+        inspector = DPModelInspector()
+        print(f"Is the model valid? {inspector.validate(net)}")
     return net
 
 

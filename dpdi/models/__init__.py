@@ -16,13 +16,17 @@ def get_net(helper, num_classes):
     elif model_type == 'resnet':
         net = models.resnet18(num_classes=num_classes)
     elif model_type == 'PretrainedRes':
-        net = get_pretrained_resnet(num_classes,
-                                    helper.params['freeze_pretrained_weights'],
-                                    helper.params.get('resnet_depth'))
+        net = get_pretrained_resnet(
+            num_classes,
+            helper.params['freeze_pretrained_weights'],
+            helper.params.get('resnet_depth'),
+            helper.params.get('convert_batchnorm_modules', False))
         net = net.cuda()
     elif model_type == 'PretrainedRegressionRes':
-        net = get_pretrained_resnet(1, helper.params['freeze_pretrained_weights'],
-                                    helper.params.get('resnet_depth'))
+        net = get_pretrained_resnet(
+            1, helper.params['freeze_pretrained_weights'],
+            helper.params.get('resnet_depth'),
+            helper.params.get('convert_batchnorm_modules', False))
 
     elif model_type == 'PretrainedResExtractor':
         net = get_resnet_extractor(num_classes,

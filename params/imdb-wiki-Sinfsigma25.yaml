@@ -14,6 +14,7 @@ save_on_epochs: [39]
 S: inf
 sigma: 25.0
 dp: True
+convert_batchnorm_modules: True  # required when using opacus
 
 criterion: mse
 
