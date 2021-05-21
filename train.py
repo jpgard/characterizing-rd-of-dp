@@ -523,7 +523,7 @@ def train(trainloader, model, optimizer, epoch, labels_mapping=None):
             loss = criterion(outputs, binarized_labels_tensor)
         else:
             loss = criterion(outputs, labels)
-        loss = torch.mean(loss)
+        import ipdb;ipdb.set_trace()
         loss.backward()
         optimizer.step()
         if i > 0 and i % 20 == 0:
