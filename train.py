@@ -554,7 +554,7 @@ if __name__ == '__main__':
                         default=None, type=int)
     parser.add_argument("--lr", type=float, default=None,
                         help="Optional argument to override lr in params.")
-    parser.add_argument("--channelwise_mean", type=bool, action="store_true",
+    parser.add_argument("--channelwise_mean", action="store_true",
                         default=False,
                         help="If true, will print the mean and STD of the"
                              "dataset by channel prior to beginning training.")
