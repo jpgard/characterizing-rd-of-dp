@@ -596,8 +596,11 @@ if __name__ == '__main__':
 
     reseed(5)
 
+    criterion = get_criterion(helper)
+    is_regression = helper.params.get('criterion') == 'mse'
+
     true_labels_to_binary_labels, classes_to_keep = load_data(helper, params, alpha, mu)
-    num_classes = helper.get_num_classes(classes_to_keep)
+    num_classes = helper.get_num_classes(classes_to_keep, is_regression)
 
     if dp and sigma != 0:
         helper.compute_rdp(sigma)
@@ -622,9 +625,6 @@ if __name__ == '__main__':
                     f" {helper.params['lr']} and current epoch is {helper.start_epoch}")
     else:
         helper.start_epoch = 1
-
-    criterion = get_criterion(helper)
-    is_regression = helper.params.get('criterion') == 'mse'
 
     # Write sample images, for the image classification tasks
     if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:

@@ -570,7 +570,9 @@ class ImageHelper(Helper):
 
         return fig
 
-    def get_num_classes(self, classes_to_keep):
+    def get_num_classes(self, classes_to_keep, is_regression):
+        if is_regression:
+            return None
         if self.params['dataset'] == 'cifar10':
             num_classes = len(classes_to_keep)
         elif self.params['dataset'] == 'cifar100':
@@ -586,8 +588,6 @@ class ImageHelper(Helper):
             num_classes = len(self.labels)
         elif self.params['dataset'] == 'lfw':
             num_classes = len(self.labels)
-        elif self.params['dataset'] in ('zillow', 'dsprites'):
-            num_classes = None
         else:
             num_classes = 10
         return num_classes
