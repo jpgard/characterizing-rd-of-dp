@@ -13,6 +13,7 @@ criterion: mse
 save_model: True
 dataset: imdb-wiki
 model: PretrainedRegressionRes
+resnet_depth: 50
 freeze_pretrained_weights: False
 scheduler: False
 optimizer: Adam
