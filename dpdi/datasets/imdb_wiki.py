@@ -81,11 +81,11 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
 
     @property
     def majority_idxs(self):
-        return np.argwhere(np.isin(self.attributes, self.majority_group_keys))[0]
+        return np.argwhere(np.isin(self.attributes, self.majority_group_keys)).flatten()
 
     @property
     def minority_idxs(self):
-        return np.argwhere(np.isin(self.attributes, self.minority_group_keys))[0]
+        return np.argwhere(np.isin(self.attributes, self.minority_group_keys)).flatten()
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
