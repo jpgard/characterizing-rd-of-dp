@@ -107,12 +107,9 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
     def apply_alpha_to_dataset(self, alpha, n_train):
         if alpha is not None:
             if n_train:
-                # Check that fixed training set size is less than or equal to full data
-                # size.
-                try:
-                    assert n_train <= len(self.majority_idxs) + len(self.minority_idxs)
-                except AssertionError:
-                    import ipdb;ipdb.set_trace()
+                assert n_train <= len(self.majority_idxs) + len(
+                    self.minority_idxs), "Sanity check that fixed training set size is " \
+                                         "less than or equal to full data size."
                 n_maj = int(alpha * n_train)
                 n_min = n_train - n_maj
             else:
@@ -126,9 +123,9 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
                 "[DEBUG] sampling n_min={} elements from {} minority items {}".format(
                     n_min, len(self.minority_idxs), self.minority_group_keys))
             sample_idx_1 = np.random.choice(self.majority_idxs, size=n_maj,
-                                                   replace=False)
+                                            replace=False)
             sample_idx_0 = np.random.choice(self.minority_idxs, size=n_min,
-                                                   replace=False)
+                                            replace=False)
             idx_sample = np.concatenate((sample_idx_1, sample_idx_0))
             self.anno = self.anno[idx_sample]
             assert len(self) == (n_min + n_maj), "Sanity check for self subsetting."
