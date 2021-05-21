@@ -6,7 +6,7 @@ momentum: 0.9
 decay: 5e-4
 dp: False
 epochs: 40
-n_train: 85000
+n_train: 90000
 save_on_epochs: [39]
 
 criterion: mse
