@@ -13,7 +13,7 @@ TRAIN_TEST_SPLIT_SEED = 948292
 def get_anno_df(root_dir, is_train):
     # root_dir = "/Users/jpgard/Documents/research/imdb-wiki"
     meta_df = pd.read_csv(os.path.join(root_dir, "meta.csv"))
-    meta_df.replace({"male": 1, "female": 0})
+    meta_df.replace({"male": 1, "female": 0}, inplace=True)
     train, test = train_test_split(meta_df, train_size=0.8,
                                    random_state=TRAIN_TEST_SPLIT_SEED)
     if is_train:
