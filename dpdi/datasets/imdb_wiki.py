@@ -75,7 +75,7 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
 
         img_fp = os.path.join(self.root_dir, self.filepaths[idx])
         image = self.loader(img_fp)
-        label = self.anno[self.target_colname].values[idx]
+        label = torch.from_numpy(self.anno[self.target_colname].values[idx]).float()
 
         if self.transform:
             image = self.transform(image)
