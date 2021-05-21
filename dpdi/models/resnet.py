@@ -4,7 +4,7 @@ import torchvision.models as models
 from dpdi.models.simple import SimpleNet
 
 
-def get_resnet_extractor(num_classes, freeze_pretrained_weights:bool):
+def get_resnet_extractor(num_classes, freeze_pretrained_weights: bool):
     """Fetch a pretrained resnet feature extractor, with a FC layer.
 
     This model uses the feature output of the conv layer (the correct way to use the
@@ -23,14 +23,18 @@ def get_resnet_extractor(num_classes, freeze_pretrained_weights:bool):
     return feature_extractor
 
 
-def get_pretrained_resnet(num_classes, freeze_pretrained_weights:bool):
+def get_pretrained_resnet(num_classes, freeze_pretrained_weights: bool,
+                          resnet_depth:int=None):
     """Fetch a pretrained resnet with a new FC layer with num_classes.
-
-    This is the original pretrained model implemented in (Bagdasaryan et al.), but it
-    uses the output of the ResNet classification layer, not the feature output of the
-    conv layer. (To use the feature output of the conv layer, see get_resnet_extractor().)
     """
-    net = models.resnet18(pretrained=True)
+    if resnet_depth is None or resnet_depth == 18:
+        net = models.resnet18(pretrained=True)
+    elif resnet_depth == 34:
+        net = models.resnet34(pretrained=True)
+    elif resnet_depth == 101:
+        net = models.resnet101(pretrained=True)
+    else:
+        raise ValueError("resnet_depth %s not supported" % resnet_depth)
     net.fc = nn.Linear(512, num_classes)
     if freeze_pretrained_weights:
         for parameter in net.parameters():
@@ -49,7 +53,6 @@ class Res(SimpleNet):
         else:
             self.res = models.resnet18(num_classes=100)
 
-
     def forward(self, x):
         x = self.res(x)
         return x
@@ -61,7 +64,6 @@ class PretrainedRes(SimpleNet):
         self.res = models.resnet101(pretrained=True)
         self.fc1 = nn.Linear(1000, 100)
         self.fc2 = nn.Linear(100, no_classes)
-
 
     def forward(self, x):
         x = self.res(x)

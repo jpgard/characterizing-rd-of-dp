@@ -14,23 +14,21 @@ import random
 
 from torchvision import datasets, transforms
 import numpy as np
-from dpdi.datasets.dif_dataset import DiFDataset
 from dpdi.datasets.celeba_dataset import CelebADataset, get_celeba_transforms
 from dpdi.datasets.lfw_dataset import LFWDataset, get_lfw_transforms
 from dpdi.datasets.mnist_dataset import MNISTWithAttributesDataset
 from dpdi.datasets.mc10_dataset import CIFAR10WithAttributesDataset
 from dpdi.datasets.zillow_dataset import ZillowDataset
 from dpdi.datasets.dsprites import DspritesDataset
+from dpdi.datasets.imdb_wiki import IMDBWikiDataset
 from collections import OrderedDict
-
 
 POISONED_PARTICIPANT_POS = 0
 
 
-
-def apply_alpha_to_dataset(dataset, alpha:float=None,
+def apply_alpha_to_dataset(dataset, alpha: float = None,
                            minority_keys=None, majority_keys=None,
-                           n_train:int=None):
+                           n_train: int = None):
     """
 
     :param dataset: torch dataset.
@@ -51,8 +49,10 @@ def apply_alpha_to_dataset(dataset, alpha:float=None,
         else:
             n_maj = len(majority_idxs)
             n_min = int((1 - alpha) * float(n_maj) / alpha)
-        print("[DEBUG] sampling {} elements from minority group {}".format(n_min, minority_keys))
-        print("[DEBUG] sampling {} elements from majority_group {}".format(n_maj, majority_keys))
+        print("[DEBUG] sampling {} elements from minority group {}".format(n_min,
+                                                                           minority_keys))
+        print("[DEBUG] sampling {} elements from majority_group {}".format(n_maj,
+                                                                           majority_keys))
 
         # Sample alpha * n_sub from the majority, and (1-alpha)*n_sub from the minority.
         majority_idx_sample = np.random.choice(majority_idxs, size=n_maj, replace=False)
@@ -68,7 +68,6 @@ def apply_alpha_to_dataset(dataset, alpha:float=None,
     return dataset
 
 
-
 class ImageHelper(Helper):
 
     def poison(self):
@@ -82,8 +81,10 @@ class ImageHelper(Helper):
             per_class_list[int(label)].append(ind)
         per_class_list = OrderedDict(sorted(per_class_list.items(), key=lambda t: t[0]))
         for key, indices in per_class_list.items():
-            self.per_class_loader[int(key)] = torch.utils.data.DataLoader(self.test_dataset, batch_size=self.params[
-                'test_batch_size'], sampler=torch.utils.data.sampler.SubsetRandomSampler(indices))
+            self.per_class_loader[int(key)] = torch.utils.data.DataLoader(
+                self.test_dataset, batch_size=self.params[
+                    'test_batch_size'],
+                sampler=torch.utils.data.sampler.SubsetRandomSampler(indices))
 
     def sampler_exponential_class(self, mu=1, total_number=40000,
                                   keys_to_drop: list = None, number_of_entries=None):
@@ -136,7 +137,9 @@ class ImageHelper(Helper):
                 subset_len = int(len(indices) * (mu ** key) * proportion)
             sum += subset_len
             subset_lengths.append(subset_len)
-            logger.info(f'Key: {key}, subset len: {subset_len} original class len: {len(indices)}')
+            logger.info(
+                f'Key: {key}, subset len: {subset_len} original class len: '
+                f'{len(indices)}')
             ds_indices.extend(indices[:subset_len])
         self.dataset_size = sum
         logger.info(f'Imbalance: {max(subset_lengths) / min(subset_lengths)}')
@@ -180,19 +183,19 @@ class ImageHelper(Helper):
             self.test_dataset, batch_size=self.params['batch_size'],
             sampler=torch.utils.data.sampler.SubsetRandomSampler(ds_indices),
             drop_last=True)
-    
+
     def load_dsprites_data(self):
         self.train_dataset = DspritesDataset(self.params['root_dir'], True, True,
                                              alpha=self.params['alpha'])
         self.test_dataset = DspritesDataset(self.params['root_dir'], False, True)
-        self.unnormalized_test_dataset = DspritesDataset(self.params['root_dir'], 
+        self.unnormalized_test_dataset = DspritesDataset(self.params['root_dir'],
                                                          False, False)
         self.create_loaders()
         self.dataset_size = len(self.train_dataset)
 
     def load_cifar_or_mnist_data(self, dataset, classes_to_keep=None,
-                                 labels_mapping:dict=None,
-                                 alpha:float=None):
+                                 labels_mapping: dict = None,
+                                 alpha: float = None):
         """Loads cifar10, cifar100, or MNIST datasets."""
         logger.info('Loading data')
 
@@ -222,7 +225,7 @@ class ImageHelper(Helper):
         if dataset == 'cifar10':
             self.train_dataset = CIFAR10WithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root='../data', train=True,  download=True, transform=transform_train)
+                root='../data', train=True, download=True, transform=transform_train)
             self.test_dataset = CIFAR10WithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
                 root='../data', train=False, transform=transform_test)
@@ -234,7 +237,8 @@ class ImageHelper(Helper):
             self.train_dataset = datasets.CIFAR100('./data', train=True, download=True,
                                                    transform=transform_train)
 
-            self.test_dataset = datasets.CIFAR100('./data', train=False, transform=transform_test)
+            self.test_dataset = datasets.CIFAR100('./data', train=False,
+                                                  transform=transform_test)
         elif dataset == 'mnist':
             self.train_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
@@ -275,7 +279,6 @@ class ImageHelper(Helper):
             print("[DEBUG] unique test labels: {}".format(
                 self.test_dataset.targets.unique()))
 
-
         self.dataset_size = len(self.train_dataset)
         if labels_mapping:
             self.labels = [0, 1]
@@ -285,12 +288,14 @@ class ImageHelper(Helper):
 
     def create_loaders(self):
         self.train_loader = torch.utils.data.DataLoader(self.train_dataset,
-                                                        batch_size=self.params['batch_size'],
+                                                        batch_size=self.params[
+                                                            'batch_size'],
                                                         drop_last=True,
                                                         pin_memory=True,
                                                         num_workers=8)
         self.test_loader = torch.utils.data.DataLoader(self.test_dataset,
-                                                       batch_size=self.params['test_batch_size'],
+                                                       batch_size=self.params[
+                                                           'test_batch_size'],
                                                        pin_memory=True,
                                                        num_workers=8)
         if hasattr(self, 'unnormalized_test_dataset'):
@@ -306,14 +311,17 @@ class ImageHelper(Helper):
             [transforms.ToTensor(),
              normalize])
 
-        if os.path.exists('data/utk/train_ds.pt') and os.path.exists('data/utk/test_ds.pt'):
+        if os.path.exists('data/utk/train_ds.pt') and os.path.exists(
+                'data/utk/test_ds.pt'):
             logger.info('DS already exists. Loading.')
             self.train_dataset = torch.load('data/utk/train_ds.pt')
             self.test_dataset = torch.load('data/utk/test_ds.pt')
         else:
-            self.train_dataset = torchvision.datasets.ImageFolder('data/utk/clustered/gender/', transform=transform)
+            self.train_dataset = torchvision.datasets.ImageFolder(
+                'data/utk/clustered/gender/', transform=transform)
             torch.save(self.train_dataset, 'data/utk/train_ds.pt')
-            self.test_dataset = torchvision.datasets.ImageFolder('data/utk/test/gender/', transform=transform)
+            self.test_dataset = torchvision.datasets.ImageFolder('data/utk/test/gender/',
+                                                                 transform=transform)
             torch.save(self.test_dataset, 'data/utk/test_ds.pt')
 
         self.races = {'white': 0, 'black': 1, 'asian': 2, 'indian': 3, 'other': 4}
@@ -322,14 +330,20 @@ class ImageHelper(Helper):
         race_ds = dict()
         race_loaders = dict()
         for name, i in self.races.items():
-            race_ds[i] = torchvision.datasets.ImageFolder(f'data/utk/test_gender/race/{i}/', transform=transform)
-            race_loaders[i] = torch.utils.data.DataLoader(race_ds[i], batch_size=8, shuffle=True, num_workers=2)
+            race_ds[i] = torchvision.datasets.ImageFolder(
+                f'data/utk/test_gender/race/{i}/', transform=transform)
+            race_loaders[i] = torch.utils.data.DataLoader(race_ds[i], batch_size=8,
+                                                          shuffle=True, num_workers=2)
         self.race_datasets = race_ds
         self.race_loaders = race_loaders
 
-        self.test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=8, shuffle=True, num_workers=2)
-        self.train_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=self.params['batch_size'],
-                                                        shuffle=True, num_workers=2, drop_last=True)
+        self.test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=8,
+                                                       shuffle=True, num_workers=2)
+        self.train_loader = torch.utils.data.DataLoader(self.test_dataset,
+                                                        batch_size=self.params[
+                                                            'batch_size'],
+                                                        shuffle=True, num_workers=2,
+                                                        drop_last=True)
         self.dataset_size = len(self.train_dataset)
         logger.info(self.dataset_size)
         return True
@@ -346,32 +360,34 @@ class ImageHelper(Helper):
         self.center_crop = transforms.CenterCrop((self.im_size[0], self.im_size[1]))
         self.scale_aug = transforms.RandomResizedCrop(size=self.im_size[0])
         self.flip_aug = transforms.RandomHorizontalFlip()
-        self.color_aug = transforms.ColorJitter(self.brightness, self.contrast, self.saturation, self.hue)
+        self.color_aug = transforms.ColorJitter(self.brightness, self.contrast,
+                                                self.saturation, self.hue)
         self.tensor_aug = transforms.ToTensor()
         self.norm_aug = transforms.Normalize(mean=self.mu_data, std=self.std_data)
         normalize = transforms.Normalize(mean=self.mu_data, std=self.std_data)
 
         transform_train = transforms.Compose(
-            [self.scale_aug, self.flip_aug, self.color_aug, transforms.ToTensor(), normalize])
-        transform_test = transforms.Compose([self.center_crop, transforms.ToTensor(), normalize])
+            [self.scale_aug, self.flip_aug, self.color_aug, transforms.ToTensor(),
+             normalize])
+        transform_test = transforms.Compose(
+            [self.center_crop, transforms.ToTensor(), normalize])
 
         self.train_dataset = torchvision.datasets.ImageFolder(
             '/media/classes', transform=transform_train)
         logger.info('len train before : ', len(self.train_dataset))
-        # if self.params['ds_size']:
-        #     indices = list(range(0, len(self.train_dataset)))
-        #     random.shuffle(indices)
-        #     random_split = indices[:self.params['ds_size']]
-        #     self.train_dataset = torch.utils.data.Subset(self.train_dataset, random_split)
-        #     logger.info('len train: ', len(self.train_dataset))
+
         self.test_dataset = torchvision.datasets.ImageFolder(
             '/media/classes_test', transform=transform_test)
         logger.info('len test: ', len(self.test_dataset))
         self.labels = list(range(len(os.listdir('/media/classes_test/'))))
         logger.info(self.labels)
-        self.test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=8, shuffle=True, num_workers=2)
-        self.train_loader = torch.utils.data.DataLoader(self.train_dataset, batch_size=self.params['batch_size'],
-                                                        shuffle=True, num_workers=2, drop_last=True)
+        self.test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=8,
+                                                       shuffle=True, num_workers=2)
+        self.train_loader = torch.utils.data.DataLoader(self.train_dataset,
+                                                        batch_size=self.params[
+                                                            'batch_size'],
+                                                        shuffle=True, num_workers=2,
+                                                        drop_last=True)
         self.dataset_size = len(self.train_dataset)
         return True
 
@@ -384,20 +400,25 @@ class ImageHelper(Helper):
         if self.params['inat_drop_proportional']:
             for key, value in per_class_index.items():
                 random.shuffle(value)
-                per_class_no = int(len(value) * (self.params['ds_size'] / len(self.train_dataset)))
-                logger.info(f'class: {key}, len: {len(value)}. new length: {per_class_no}')
+                per_class_no = int(
+                    len(value) * (self.params['ds_size'] / len(self.train_dataset)))
+                logger.info(
+                    f'class: {key}, len: {len(value)}. new length: {per_class_no}')
                 total_indices.extend(value[:per_class_no])
         else:
             per_class_no = self.params['ds_size'] / len(per_class_index)
             for key, value in per_class_index.items():
-                logger.info(f'class: {key}, len: {len(value)}. new length: {per_class_no}')
+                logger.info(
+                    f'class: {key}, len: {len(value)}. new length: {per_class_no}')
                 random.shuffle(value)
                 total_indices.extend(value[:per_class_no])
         logger.info(f'total length: {len(total_indices)}')
         self.dataset_size = len(total_indices)
-        train_sampler = torch.utils.data.sampler.SubsetRandomSampler(indices=total_indices)
+        train_sampler = torch.utils.data.sampler.SubsetRandomSampler(
+            indices=total_indices)
         self.train_loader = torch.utils.data.DataLoader(self.train_dataset,
-                                                        batch_size=self.params['batch_size'],
+                                                        batch_size=self.params[
+                                                            'batch_size'],
                                                         sampler=train_sampler,
                                                         num_workers=2, drop_last=True)
 
@@ -410,14 +431,14 @@ class ImageHelper(Helper):
             # logger.info(f'unbalanced: {x}, {len(indices)}')
             sampler = torch.utils.data.sampler.SubsetRandomSampler(indices=indices)
             self.unbalanced_loaders[x] = torch.utils.data.DataLoader(self.test_dataset,
-                                                        batch_size=self.params['test_batch_size'],
-                                                        sampler=sampler,
-                                                        num_workers=2, drop_last=True)
-
-
+                                                                     batch_size=
+                                                                     self.params[
+                                                                         'test_batch_size'],
+                                                                     sampler=sampler,
+                                                                     num_workers=2,
+                                                                     drop_last=True)
 
         return True
-
 
     def load_zillow_data(self):
         self.train_dataset = ZillowDataset(
@@ -432,6 +453,17 @@ class ImageHelper(Helper):
         self.create_loaders()
         self.dataset_size = len(self.train_dataset)
 
+    def load_imdb_wiki_data(self):
+        self.train_dataset = IMDBWikiDataset(self.params['root_dir'],
+                                             is_train=True, normalize=True)
+        self.train_dataset.apply_alpha_to_dataset(self.params.get('alpha'),
+                                                  self.params.get('n_train'))
+        self.test_dataset = IMDBWikiDataset(self.params['root_dir'],
+                                            is_train=False, normalize=True)
+        self.unnormalized_test_dataset = IMDBWikiDataset(self.params['root_dir'],
+                                                         is_train=False, normalize=False)
+        self.create_loaders()
+        self.dataset_size = len(self.train_dataset)
 
     def load_celeba_data(self):
         transform_train = get_celeba_transforms('train')
@@ -467,7 +499,7 @@ class ImageHelper(Helper):
             transform_test,
             partition='test')
 
-        self.labels = [0,1]
+        self.labels = [0, 1]
         self.dataset_size = len(self.train_dataset)
 
         logger.info(f"Loaded dataset: labels: {self.labels}, "
@@ -506,7 +538,6 @@ class ImageHelper(Helper):
             partition='test'
         )
 
-
         self.labels = [0, 1]
         self.dataset_size = len(self.train_dataset)
 
@@ -541,7 +572,9 @@ class ImageHelper(Helper):
 
         return fig
 
-    def get_num_classes(self, classes_to_keep):
+    def get_num_classes(self, classes_to_keep, is_regression):
+        if is_regression:
+            return None
         if self.params['dataset'] == 'cifar10':
             num_classes = len(classes_to_keep)
         elif self.params['dataset'] == 'cifar100':
@@ -557,8 +590,6 @@ class ImageHelper(Helper):
             num_classes = len(self.labels)
         elif self.params['dataset'] == 'lfw':
             num_classes = len(self.labels)
-        elif self.params['dataset'] in ('zillow', 'dsprites'):
-            num_classes = None
         else:
             num_classes = 10
         return num_classes

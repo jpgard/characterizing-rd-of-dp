@@ -26,12 +26,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # These are datasets that yield tuples of (images, idxs, labels) instead of
 # (images,labels).
 
-TRIPLET_YIELDING_DATASETS = ('celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites')
+TRIPLET_YIELDING_DATASETS = ('celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites', 'imdb-wiki')
 
 # These are datasets where we explicitly track performance according to some majority/minority
-# attribute defined in the params.
-MINORITY_PERFORMANCE_TRACK_DATASETS = (
-    'celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites')
+# attribute defined in the params. This shouldn't require a second module-level variable,
+# but this can be fixed/refactored in the future.
+MINORITY_PERFORMANCE_TRACK_DATASETS = TRIPLET_YIELDING_DATASETS
 
 
 def maybe_override_parameter(params: dict, args, parameter_name: str):
@@ -88,6 +88,8 @@ def load_data(helper, params, alpha, mu):
         helper.load_zillow_data()
     elif helper.params['dataset'] == 'dsprites':
         helper.load_dsprites_data()
+    elif helper.params['dataset'] == 'imdb-wiki':
+        helper.load_imdb_wiki_data()
     else:
         # First, define classes_to_keep.
         # Labels are assigned in order of index in this array; so minority_key has
@@ -132,26 +134,25 @@ def mean_of_tensor_list(lst):
 
 
 def compute_channelwise_mean(dataset):
-    if len(dataset.data.shape) > 3:
-        means = defaultdict(list)
-        sds = defaultdict(list)
-        for (i, batch) in enumerate(dataset):
-            x, _, _ = batch
-            # batch is a set of images of shape [b, c, h, w]
-            means[0].append(torch.mean(x[:, 0, ...]))
-            sds[0].append(torch.std(x[:, 0, ...]))
-            means[1].append(torch.mean(x[:, 1, ...]))
-            sds[1].append(torch.std(x[:, 1, ...]))
-            means[2].append(torch.mean(x[:, 2, ...]))
-            sds[2].append(torch.std(x[:, 2, ...]))
-        # We ignore the last batch in case it is incomplete.
-        print("Channel 0 mean: %f" % mean_of_tensor_list(means[0][:-1]))
-        print("Channel 1 mean: %f" % mean_of_tensor_list(means[1][:-1]))
-        print("Channel 2 mean: %f" % mean_of_tensor_list(means[2][:-1]))
-        print("Channel 0 sd: %f" % mean_of_tensor_list(sds[0][:-1]))
-        print("Channel 1 sd: %f" % mean_of_tensor_list(sds[1][:-1]))
-        print("Channel 2 sd: %f" % mean_of_tensor_list(sds[2][:-1]))
-        return
+    means = defaultdict(list)
+    sds = defaultdict(list)
+    for (i, batch) in enumerate(dataset):
+        x, _, _ = batch
+        # batch is a set of images of shape [b, c, h, w]
+        means[0].append(torch.mean(x[:, 0, ...]))
+        sds[0].append(torch.std(x[:, 0, ...]))
+        means[1].append(torch.mean(x[:, 1, ...]))
+        sds[1].append(torch.std(x[:, 1, ...]))
+        means[2].append(torch.mean(x[:, 2, ...]))
+        sds[2].append(torch.std(x[:, 2, ...]))
+    # We ignore the last batch in case it is incomplete.
+    print("Channel 0 mean: %f" % mean_of_tensor_list(means[0][:-1]))
+    print("Channel 1 mean: %f" % mean_of_tensor_list(means[1][:-1]))
+    print("Channel 2 mean: %f" % mean_of_tensor_list(means[2][:-1]))
+    print("Channel 0 sd: %f" % mean_of_tensor_list(sds[0][:-1]))
+    print("Channel 1 sd: %f" % mean_of_tensor_list(sds[1][:-1]))
+    print("Channel 2 sd: %f" % mean_of_tensor_list(sds[2][:-1]))
+    return
 
 
 def add_pos_and_neg_summary_images(data_loader, is_regression, max_images=64, labels_mapping=None):
@@ -181,7 +182,7 @@ def make_uid(params, args):
     number_of_entries_train = args.number_of_entries_train
     if number_of_entries_train is None:
         number_of_entries_train = params.get('number_of_entries')
-    uid = "{ds}-S{S}-z{z}-sigma{sigma}-alpha-{alpha}-ada{ada}-dp{dp}-n{n}-{model}lr{lr}".format(
+    uid = "{ds}-S{S}-z{z}-sigma{sigma}-alpha-{alpha}-ada{ada}-dp{dp}-n{n}-{model}{depth}lr{lr}".format(
         ds=params['dataset'],
         S=params.get('S'),
         z=params.get('z'),
@@ -190,6 +191,7 @@ def make_uid(params, args):
         dp=str(params['dp']),
         n=number_of_entries_train,
         model=params['model'],
+        depth=params.get('resnet_depth', ''),
         lr=params['lr'])
     if alpha is not None:
         uid += '-alpha' + str(alpha)
@@ -402,11 +404,12 @@ def train_dp(trainloader, model, optimizer, epoch, sigma, alpha, labels_mapping=
              adaptive_sigma=False):
     norm_type = 2
     model.train()
-    label_norms = defaultdict(list)
+    attr_norms = defaultdict(list)
     ssum = 0
     for i, data in tqdm(enumerate(trainloader, 0), leave=True):
         if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
             inputs, idxs, labels = data
+            attrs = helper.test_dataset.get_attribute_annotations(idxs)
         else:
             inputs, labels = data
 
@@ -441,7 +444,7 @@ def train_dp(trainloader, model, optimizer, epoch, sigma, alpha, labels_mapping=
             grad_vec = helper.get_grad_vec(model, device)
             grad_vecs.append(grad_vec)
             total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), S)
-            label_norms[int(labels[pos])].append(total_norm)
+            attr_norms[int(attrs[pos])].append(total_norm)
 
             for tensor_name, tensor in model.named_parameters():
                 if tensor.grad is not None:
@@ -482,9 +485,8 @@ def train_dp(trainloader, model, optimizer, epoch, sigma, alpha, labels_mapping=
             plot(epoch * len(trainloader) + i, batch_loss, 'Train Loss')
     print(ssum)
     plot(epoch, avg_grad_norm, "norms/avg_grad_norm")
-    for pos, norms in sorted(label_norms.items(), key=lambda x: x[0]):
-        logger.info(f"{pos}: {torch.mean(torch.stack(norms))}")
-        plot(epoch, torch.mean(torch.stack(norms)), f'norms/class_{pos}')
+    for pos, norms in sorted(attr_norms.items(), key=lambda x: x[0]):
+        plot(epoch, torch.mean(torch.stack(norms)), f'norms_by_attr/{pos}')
 
 
 def train(trainloader, model, optimizer, epoch, labels_mapping=None):
@@ -550,6 +552,8 @@ if __name__ == '__main__':
                         default=None, type=float)
     parser.add_argument("--epochs", help="Optional argument to override epochs in params.",
                         default=None, type=int)
+    parser.add_argument("--lr", type=float, default=None,
+                        help="Optional argument to override lr in params.")
     args = parser.parse_args()
     d = datetime.now().strftime('%b.%d_%H.%M.%S')
 
@@ -557,7 +561,7 @@ if __name__ == '__main__':
         params = yaml.load(f)
 
     for pname in ("train_attribute_subset", 'sigma', 'epochs', 'alpha',
-                  'number_of_entries_train'):
+                  'number_of_entries_train', 'lr'):
         maybe_override_parameter(params, args, pname)
 
     name = make_uid(params, args)
@@ -594,8 +598,11 @@ if __name__ == '__main__':
 
     reseed(5)
 
+    criterion = get_criterion(helper)
+    is_regression = helper.params.get('criterion') == 'mse'
+
     true_labels_to_binary_labels, classes_to_keep = load_data(helper, params, alpha, mu)
-    num_classes = helper.get_num_classes(classes_to_keep)
+    num_classes = helper.get_num_classes(classes_to_keep, is_regression)
 
     if dp and sigma != 0:
         helper.compute_rdp(sigma)
@@ -620,9 +627,6 @@ if __name__ == '__main__':
                     f" {helper.params['lr']} and current epoch is {helper.start_epoch}")
     else:
         helper.start_epoch = 1
-
-    criterion = get_criterion(helper)
-    is_regression = helper.params.get('criterion') == 'mse'
 
     # Write sample images, for the image classification tasks
     if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:
