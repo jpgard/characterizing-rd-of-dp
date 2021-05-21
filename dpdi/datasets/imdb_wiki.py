@@ -69,13 +69,17 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
     def filepaths(self):
         return self.anno[self.fp_colname].values
 
+    @property
+    def targets(self):
+        return np.expand_dims(self.anno[self.target_colname].values, 1).astype(float)
+
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
         img_fp = os.path.join(self.root_dir, self.filepaths[idx])
         image = self.loader(img_fp)
-        label = torch.from_numpy(self.anno[self.target_colname].values[idx]).float()
+        label = torch.from_numpy(self.targets[idx]).float()
 
         if self.transform:
             image = self.transform(image)
