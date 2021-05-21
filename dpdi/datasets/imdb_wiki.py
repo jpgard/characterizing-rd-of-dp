@@ -105,7 +105,10 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
             if n_train:
                 # Check that fixed training set size is less than or equal to full data
                 # size.
-                assert n_train <= len(self.majority_idxs) + len(self.minority_idxs)
+                try:
+                    assert n_train <= len(self.majority_idxs) + len(self.minority_idxs)
+                except AssertionError:
+                    import ipdb;ipdb.set_trace()
                 n_maj = int(alpha * n_train)
                 n_min = n_train - n_maj
             else:
