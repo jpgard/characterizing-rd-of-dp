@@ -404,11 +404,12 @@ def train_dp(trainloader, model, optimizer, epoch, sigma, alpha, labels_mapping=
              adaptive_sigma=False):
     norm_type = 2
     model.train()
-    label_norms = defaultdict(list)
+    attr_norms = defaultdict(list)
     ssum = 0
     for i, data in tqdm(enumerate(trainloader, 0), leave=True):
         if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
             inputs, idxs, labels = data
+            attrs = helper.test_dataset.get_attribute_annotations(idxs)
         else:
             inputs, labels = data
 
@@ -443,7 +444,7 @@ def train_dp(trainloader, model, optimizer, epoch, sigma, alpha, labels_mapping=
             grad_vec = helper.get_grad_vec(model, device)
             grad_vecs.append(grad_vec)
             total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), S)
-            label_norms[int(labels[pos])].append(total_norm)
+            attr_norms[int(attrs[pos])].append(total_norm)
 
             for tensor_name, tensor in model.named_parameters():
                 if tensor.grad is not None:
@@ -484,9 +485,8 @@ def train_dp(trainloader, model, optimizer, epoch, sigma, alpha, labels_mapping=
             plot(epoch * len(trainloader) + i, batch_loss, 'Train Loss')
     print(ssum)
     plot(epoch, avg_grad_norm, "norms/avg_grad_norm")
-    for pos, norms in sorted(label_norms.items(), key=lambda x: x[0]):
-        logger.info(f"{pos}: {torch.mean(torch.stack(norms))}")
-        plot(epoch, torch.mean(torch.stack(norms)), f'norms/class_{pos}')
+    for pos, norms in sorted(attr_norms.items(), key=lambda x: x[0]):
+        plot(epoch, torch.mean(torch.stack(norms)), f'norms_by_attr/{pos}')
 
 
 def train(trainloader, model, optimizer, epoch, labels_mapping=None):
