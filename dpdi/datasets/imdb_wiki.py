@@ -61,6 +61,8 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
         self.target_colname = target_colname
         self.attribute_colname = attribute_colname
         self.fp_colname = "path"
+        self.majority_group_keys = (1,)
+        self.minority_group_keys = (0,)
 
     def __len__(self):
         return len(self.anno)
@@ -72,6 +74,14 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
     @property
     def targets(self):
         return np.expand_dims(self.anno[self.target_colname].values, 1).astype(float)
+
+    @property
+    def majority_idxs(self):
+        return np.argwhere(np.isin(self.targets, self.majority_group_keys))[0]
+
+    @property
+    def minority_idxs(self):
+        return np.argwhere(np.isin(self.targets, self.minority_group_keys))[0]
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
@@ -89,3 +99,32 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
     def get_attribute_annotations(self, idxs):
         idx_annos = self.anno[self.attribute_colname].values[idxs]
         return idx_annos
+
+    def apply_alpha_to_dataset(self, alpha, n_train):
+        if alpha is not None:
+            if n_train:
+                # Check that fixed training set size is less than or equal to full data
+                # size.
+                assert n_train <= len(self.majority_idxs) + len(self.minority_idxs)
+                n_maj = int(alpha * n_train)
+                n_min = n_train - n_maj
+            else:
+                # TODO
+                raise NotImplementedError
+            # Sample alpha * n_sub from the majority, and (1-alpha)*n_sub from the
+            # minority.
+            print("[DEBUG] sampling n_maj={} elements from {} majority items {}".format(
+                n_maj, len(self.majority_idxs), self.majority_group_keys))
+            print(
+                "[DEBUG] sampling n_min={} elements from {} minority items {}".format(
+                    n_min, len(self.minority_idxs), self.minority_group_keys))
+            sample_idx_1 = np.random.choice(self.majority_idxs, size=n_maj,
+                                                   replace=False)
+            sample_idx_0 = np.random.choice(self.minority_idxs, size=n_min,
+                                                   replace=False)
+            idx_sample = np.concatenate((sample_idx_1, sample_idx_0))
+            self.anno = self.anno[idx_sample]
+            assert len(self) == (n_min + n_maj), "Sanity check for self subsetting."
+            assert abs(float(len(sample_idx_0)) / len(self) - (1 - alpha)) < \
+                   0.001, "Sanity check for minority size within 0.001 of (1-alpha)."
+        return
