@@ -26,12 +26,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # These are datasets that yield tuples of (images, idxs, labels) instead of
 # (images,labels).
 
-TRIPLET_YIELDING_DATASETS = ('celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites')
+TRIPLET_YIELDING_DATASETS = ('celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites', 'imdb-wiki')
 
 # These are datasets where we explicitly track performance according to some majority/minority
-# attribute defined in the params.
-MINORITY_PERFORMANCE_TRACK_DATASETS = (
-    'celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites')
+# attribute defined in the params. This shouldn't require a second module-level variable,
+# but this can be fixed/refactored in the future.
+MINORITY_PERFORMANCE_TRACK_DATASETS = TRIPLET_YIELDING_DATASETS
 
 
 def maybe_override_parameter(params: dict, args, parameter_name: str):
@@ -88,6 +88,8 @@ def load_data(helper, params, alpha, mu):
         helper.load_zillow_data()
     elif helper.params['dataset'] == 'dsprites':
         helper.load_dsprites_data()
+    elif helper.params['dataset'] == 'imdb-wiki':
+        helper.load_imdb_wiki_data()
     else:
         # First, define classes_to_keep.
         # Labels are assigned in order of index in this array; so minority_key has
