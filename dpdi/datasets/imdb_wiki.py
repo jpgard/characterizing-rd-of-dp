@@ -23,8 +23,8 @@ def get_anno_df(root_dir, is_train):
 
 
 def get_transforms(is_train: bool, normalize: bool):
-    mu = [0., 0., 0.]
-    std = [1., 1., 1.]
+    mu = [0.465727, 0.377981, 0.331473]
+    std = [0.286456, 0.254825, 0.248889]
 
     resize = transforms.Resize([160, 160])
     rotate = transforms.RandomRotation(degrees=30)
