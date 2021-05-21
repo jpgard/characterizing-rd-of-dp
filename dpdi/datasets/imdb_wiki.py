@@ -53,6 +53,7 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
 
     def __init__(self, root_dir, is_train: bool, normalize: bool, target_colname="age",
                  attribute_colname="gender"):
+        self.root_dir = root_dir
         self.anno = get_anno_df(root_dir, is_train)
         self.transform = get_transforms(is_train, normalize)
         self.loader = default_loader
