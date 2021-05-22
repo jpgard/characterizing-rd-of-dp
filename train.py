@@ -267,9 +267,10 @@ def idx_where_true(ary):
     return np.ravel(np.argwhere(bool_indices))
 
 
-def sample_grad_norms(epoch, testloader, n_batches=5, mse:bool=False,
+def sample_grad_norms(epoch, testloader, n_batches=3, mse:bool=False,
                       labels_mapping=None):
     ce_loss = nn.CrossEntropyLoss(reduction='none')
+    attr_norms = defaultdict(list)
     for idx, data in tqdm(enumerate(testloader)):
         if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
             inputs, idxs, labels = data
@@ -286,28 +287,19 @@ def sample_grad_norms(epoch, testloader, n_batches=5, mse:bool=False,
                 labels, pos_labels, labels_type)
         else:
             preprocessed_labels = labels
-        #
-        # n_test += preprocessed_labels.size(0)
+
 
         if not mse:
             _, predicted = torch.max(outputs.data, 1)
-
             elementwise_loss = ce_loss(outputs, preprocessed_labels)
-
         else:
             elementwise_loss = compute_mse(torch.squeeze(outputs),
                                            torch.squeeze(preprocessed_labels))
 
-        if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:
-            # batch_attr_labels is an array of shape [batch_size] where the
-            # ith entry is either 1/0/nan and correspond to the attribute labels
-            # of the ith element in the batch.
-            batch_attr_labels = helper.test_dataset.get_attribute_annotations(idxs)
-            for a in attributes:
-                loss_by_attribute[a].extend(
-                    elementwise_loss[idx_where_true(batch_attr_labels == a)])
-            for k in keys:
-                loss_by_key[k].extend(elementwise_loss[idx_where_true(labels == k)])
+        batch_attr_labels = helper.test_dataset.get_attribute_annotations(idxs)
+
+        if idx > n_batches:
+            break
     # Compute the grad norms for each attribute
     grad_vecs = list()
     for pos, j in enumerate(elementwise_loss):
@@ -321,8 +313,12 @@ def sample_grad_norms(epoch, testloader, n_batches=5, mse:bool=False,
 
     # Compute average norm and the sigma value (if adaptive)
     grad_norms = [torch.norm(x, p=2) for x in grad_vecs]
-    avg_grad_norm = torch.mean(torch.stack(grad_norms))
+    avg_grad_norm = mean_of_tensor_list(grad_norms)
     plot(epoch, avg_grad_norm, "norms/avg_grad_norm")
+    for attr, norms in attr_norms.values():
+        avg_attr_grad_norm = mean_of_tensor_list(norms)
+        plot(epoch, avg_attr_grad_norm, f"avg_grad_norms_by_attr_test/{attr}")
+    return
 
 
 def test(net, epoch, name, testloader, vis=True, mse: bool = False,
@@ -643,6 +639,12 @@ if __name__ == '__main__':
             test_loss = test(net, epoch, name, helper.test_loader,
                              mse=metric_name == 'mse',
                              labels_mapping=true_labels_to_binary_labels)
+            try:
+                sample_grad_norms(epoch, helper.test_loader, n_batches=3,
+                                  mse=metric_name == 'mse',
+                                  labels_mapping=true_labels_to_binary_labels)
+            except Exception as e:
+                print(f"[WARNING] exception computing grad norms: {e}")
             helper.save_model(net, epoch, test_loss)
     except KeyboardInterrupt:
         print("[KeyboardInterrupt; logged to: {}".format(uid_logdir))
