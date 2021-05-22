@@ -271,7 +271,7 @@ def sample_grad_norms(epoch, testloader, n_batches=3, mse:bool=False,
                       labels_mapping=None):
     ce_loss = nn.CrossEntropyLoss(reduction='none')
     attr_norms = defaultdict(list)
-    for idx, data in tqdm(enumerate(testloader)):
+    for idx, data in enumerate(tqdm(testloader)):
         if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
             inputs, idxs, labels = data
         else:
@@ -287,7 +287,6 @@ def sample_grad_norms(epoch, testloader, n_batches=3, mse:bool=False,
                 labels, pos_labels, labels_type)
         else:
             preprocessed_labels = labels
-
 
         if not mse:
             _, predicted = torch.max(outputs.data, 1)
@@ -639,12 +638,10 @@ if __name__ == '__main__':
             test_loss = test(net, epoch, name, helper.test_loader,
                              mse=metric_name == 'mse',
                              labels_mapping=true_labels_to_binary_labels)
-            try:
-                sample_grad_norms(epoch, helper.test_loader, n_batches=3,
+            sample_grad_norms(epoch, helper.test_loader, n_batches=3,
                                   mse=metric_name == 'mse',
                                   labels_mapping=true_labels_to_binary_labels)
-            except Exception as e:
-                print(f"[WARNING] exception computing grad norms: {e}")
+
             helper.save_model(net, epoch, test_loss)
     except KeyboardInterrupt:
         print("[KeyboardInterrupt; logged to: {}".format(uid_logdir))
