@@ -314,7 +314,7 @@ def sample_grad_norms(epoch, testloader, n_batches=3, mse:bool=False,
     grad_norms = [torch.norm(x, p=2) for x in grad_vecs]
     avg_grad_norm = mean_of_tensor_list(grad_norms)
     plot(epoch, avg_grad_norm, "norms/avg_grad_norm")
-    for attr, norms in attr_norms.values():
+    for attr, norms in attr_norms.items():
         avg_attr_grad_norm = mean_of_tensor_list(norms)
         plot(epoch, avg_attr_grad_norm, f"avg_grad_norms_by_attr_test/{attr}")
     return
