@@ -270,6 +270,7 @@ def idx_where_true(ary):
 def test(net, epoch, name, testloader, vis=True, mse: bool = False,
          labels_mapping: dict = None):
     net.eval()
+    attr_norms = defaultdict(list)
     running_metric_total = 0
     running_ce_loss_total = 0
     ce_loss = nn.CrossEntropyLoss(reduction='none')
@@ -285,55 +286,72 @@ def test(net, epoch, name, testloader, vis=True, mse: bool = False,
     print("[DEBUG] detected the following keys for test metrics: {}".format(keys))
     metric_name = 'accuracy' if not mse else 'mse'
     cls_labels = getattr(helper, "labels", [])
-    with torch.no_grad():
-        for data in tqdm(testloader):
-            if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
-                inputs, idxs, labels = data
-            else:
-                inputs, labels = data
-            inputs = inputs.to(device)
-            labels = labels.to(device)
-            outputs = net(inputs)
+    # with torch.no_grad():
+    for data in tqdm(testloader):
+        if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
+            inputs, idxs, labels = data
+        else:
+            inputs, labels = data
+        inputs = inputs.to(device)
+        labels = labels.to(device)
+        outputs = net(inputs)
 
-            if labels_mapping:
-                pos_labels = [k for k, v in labels_mapping.items() if v == 1]
-                labels_type = torch.float32 if mse else torch.long
-                preprocessed_labels = binarize_labels_tensor(
-                    labels, pos_labels, labels_type)
-            else:
-                preprocessed_labels = labels
+        if labels_mapping:
+            pos_labels = [k for k, v in labels_mapping.items() if v == 1]
+            labels_type = torch.float32 if mse else torch.long
+            preprocessed_labels = binarize_labels_tensor(
+                labels, pos_labels, labels_type)
+        else:
+            preprocessed_labels = labels
 
-            n_test += preprocessed_labels.size(0)
+        n_test += preprocessed_labels.size(0)
 
-            if not mse:
-                _, predicted = torch.max(outputs.data, 1)
-                predict_labels.extend([x.item() for x in predicted])
-                correct_labels.extend([x.item() for x in preprocessed_labels])
-                running_metric_total += (predicted == preprocessed_labels).sum().item()
-                main_test_metric = running_metric_total / n_test
-                elementwise_loss = ce_loss(outputs, preprocessed_labels)
-                running_ce_loss_total += torch.mean(elementwise_loss).item()
-                for l in cls_labels:
-                    loss_by_label[l].extend(elementwise_loss[preprocessed_labels == l])
-            else:
-                elementwise_loss = compute_mse(torch.squeeze(outputs),
-                                               torch.squeeze(preprocessed_labels))
-                running_metric_total += torch.sum(elementwise_loss)
-                main_test_metric = running_metric_total / n_test
+        if not mse:
+            _, predicted = torch.max(outputs.data, 1)
+            predict_labels.extend([x.item() for x in predicted])
+            correct_labels.extend([x.item() for x in preprocessed_labels])
+            running_metric_total += (predicted == preprocessed_labels).sum().item()
+            main_test_metric = running_metric_total / n_test
+            elementwise_loss = ce_loss(outputs, preprocessed_labels)
+            running_ce_loss_total += torch.mean(elementwise_loss).item()
+            for l in cls_labels:
+                loss_by_label[l].extend(elementwise_loss[preprocessed_labels == l])
+        else:
+            elementwise_loss = compute_mse(torch.squeeze(outputs),
+                                           torch.squeeze(preprocessed_labels))
+            running_metric_total += torch.sum(elementwise_loss)
+            main_test_metric = running_metric_total / n_test
 
-            if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:
-                # batch_attr_labels is an array of shape [batch_size] where the
-                # ith entry is either 1/0/nan and correspond to the attribute labels
-                # of the ith element in the batch.
-                batch_attr_labels = helper.test_dataset.get_attribute_annotations(idxs)
-                for a in attributes:
-                    loss_by_attribute[a].extend(
-                        elementwise_loss[idx_where_true(batch_attr_labels == a)])
-                for k in keys:
-                    loss_by_key[k].extend(elementwise_loss[idx_where_true(labels == k)])
+        if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:
+            # batch_attr_labels is an array of shape [batch_size] where the
+            # ith entry is either 1/0/nan and correspond to the attribute labels
+            # of the ith element in the batch.
+            batch_attr_labels = helper.test_dataset.get_attribute_annotations(idxs)
+            for a in attributes:
+                loss_by_attribute[a].extend(
+                    elementwise_loss[idx_where_true(batch_attr_labels == a)])
+            for k in keys:
+                loss_by_key[k].extend(elementwise_loss[idx_where_true(labels == k)])
+            # Compute the grad norms for each attribute
+            grad_vecs = list()
+            for pos, j in enumerate(elementwise_loss):
+                j.backward(retain_graph=True)
+
+                grad_vec = helper.get_grad_vec(net, device)
+                grad_vecs.append(grad_vec)
+                total_norm = torch.nn.utils.clip_grad_norm_(net.parameters(), S)
+                attr_norms[int(batch_attr_labels[pos])].append(total_norm)
+                net.zero_grad()
+
+            # Compute average norm and the sigma value (if adaptive)
+            grad_norms = [torch.norm(x, p=2) for x in grad_vecs]
+            avg_grad_norm = torch.mean(torch.stack(grad_norms))
 
     if vis:
         plot(epoch, main_test_metric, metric_name)
+        plot(epoch, avg_grad_norm, "norms/avg_grad_norm")
+        for attr, norms in sorted(attr_norms.items(), key=lambda x: x[0]):
+            plot(epoch, torch.mean(torch.stack(norms)), f'norms_by_attr_test/{attr}')
         metric_list = list()
         metric_dict = dict()
         if not mse:  # Plot the classification metrics
@@ -398,95 +416,6 @@ def binarize_labels_tensor(labels: torch.Tensor, pos_labels: list,
         binary_labels += is_l.type(out_type)
     assert torch.max(binary_labels) <= 1., "Sanity check on binarized grouped labels."
     return binary_labels
-
-
-def train_dp(trainloader, model, optimizer, epoch, sigma, alpha, labels_mapping=None,
-             adaptive_sigma=False):
-    norm_type = 2
-    model.train()
-    attr_norms = defaultdict(list)
-    ssum = 0
-    for i, data in tqdm(enumerate(trainloader, 0), leave=True):
-        if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
-            inputs, idxs, labels = data
-            attrs = helper.test_dataset.get_attribute_annotations(idxs)
-        else:
-            inputs, labels = data
-
-        inputs = inputs.to(device)
-        labels = labels.to(device)
-
-        optimizer.zero_grad()
-
-        outputs = model(inputs)
-
-        if labels_mapping:
-            pos_labels = [k for k, v in labels_mapping.items() if v == 1]
-            labels_type = torch.float32 if isinstance(criterion,
-                                                      torch.nn.MSELoss) else torch.long
-
-            binarized_labels_tensor = binarize_labels_tensor(labels, pos_labels, labels_type)
-            loss = criterion(outputs, binarized_labels_tensor)
-        else:
-            loss = criterion(outputs, labels)
-
-        batch_loss = torch.mean(loss).item()
-
-        losses = torch.mean(loss.reshape(num_microbatches, -1), dim=1)
-
-        saved_var = dict()
-        for tensor_name, tensor in model.named_parameters():
-            saved_var[tensor_name] = torch.zeros_like(tensor)
-        grad_vecs = list()
-        for pos, j in enumerate(losses):
-            j.backward(retain_graph=True)
-
-            grad_vec = helper.get_grad_vec(model, device)
-            grad_vecs.append(grad_vec)
-            total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), S)
-            attr_norms[int(attrs[pos])].append(total_norm)
-
-            for tensor_name, tensor in model.named_parameters():
-                if tensor.grad is not None:
-                    new_grad = tensor.grad
-                    # logger.info('new grad: ', new_grad)
-                    saved_var[tensor_name].add_(new_grad)
-            model.zero_grad()
-
-        # Compute average norm and the sigma value (if adaptive)
-        grad_norms = [torch.norm(x, p=2) for x in grad_vecs]
-        avg_grad_norm = torch.mean(torch.stack(grad_norms))
-        if adaptive_sigma:
-            # Case: Use adaptive noise
-            sigma_dp = alpha * avg_grad_norm
-        else:
-            # Case: Do not use adaptive noise
-            sigma_dp = sigma
-
-        for tensor_name, tensor in model.named_parameters():
-            if tensor.grad is not None:
-                # Sometimes we use dp training even when sigma is set to zero (to get
-                #  gradient magnitudes); we do not add noise when sigma==0.
-                if sigma_dp > 0:
-                    if device.type == 'cuda':
-                        saved_var[tensor_name].add_(
-                            torch.cuda.FloatTensor(tensor.grad.shape).normal_(0,
-                                                                              sigma_dp))
-                    else:
-                        saved_var[tensor_name].add_(
-                            torch.FloatTensor(tensor.grad.shape).normal_(0, sigma_dp))
-                tensor.grad = saved_var[tensor_name] / num_microbatches
-
-        optimizer.step()
-
-        if i > 0 and i % 10 == 0:
-            logger.info('[epoch %d, batch %5d] loss: %.3f' %
-                        (epoch + 1, i + 1, batch_loss))
-            plot(epoch * len(trainloader) + i, batch_loss, 'Train Loss')
-    print(ssum)
-    plot(epoch, avg_grad_norm, "norms/avg_grad_norm")
-    for pos, norms in sorted(attr_norms.items(), key=lambda x: x[0]):
-        plot(epoch, torch.mean(torch.stack(norms)), f'norms_by_attr/{pos}')
 
 
 def train(trainloader, model, optimizer, epoch, labels_mapping=None):
