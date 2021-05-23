@@ -609,11 +609,8 @@ if __name__ == '__main__':
                 and args.channelwise_mean:
             compute_channelwise_mean(helper.train_loader)
 
-    from opacus import PrivacyEngine
     optimizer = get_optimizer(helper)
-    if dp:
-        privacy_engine = PrivacyEngine(net, sample_rate=0.001, noise_multiplier=sigma, max_grad_norm=S)
-        privacy_engine.attach(optimizer)
+
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                      milestones=[0.5 * epochs,
@@ -638,9 +635,14 @@ if __name__ == '__main__':
             test_loss = test(net, epoch, name, helper.test_loader,
                              mse=metric_name == 'mse',
                              labels_mapping=true_labels_to_binary_labels)
-            sample_grad_norms(epoch, helper.test_loader, n_batches=3,
-                                  mse=metric_name == 'mse',
-                                  labels_mapping=true_labels_to_binary_labels)
+            # TODO(jpgard): debug, or remove this. Currently, it computes norm of
+            #  ENTIRE model gradients tensor, which is not what I believe we want
+            #  under DP. should look more like the dp-sgd code sample here:
+            #  https://medium.com/pytorch/differential-privacy-series-part-1-dp-sgd-algorithm-explained-12512c3959a3
+            #  where gradients with respect to *each* parameter are taken.
+            # sample_grad_norms(epoch, helper.test_loader, n_batches=3,
+            #                       mse=metric_name == 'mse',
+            #                       labels_mapping=true_labels_to_binary_labels)
 
             helper.save_model(net, epoch, test_loss)
     except KeyboardInterrupt:
