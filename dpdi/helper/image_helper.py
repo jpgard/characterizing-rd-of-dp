@@ -288,6 +288,7 @@ class ImageHelper(Helper):
 
     def create_loaders(self):
         self.train_loader = torch.utils.data.DataLoader(self.train_dataset,
+                                                        shuffle=True,
                                                         batch_size=self.params[
                                                             'batch_size'],
                                                         drop_last=True,
