@@ -174,12 +174,12 @@ def make_uid(params, args):
     number_of_entries_train = args.number_of_entries_train
     if number_of_entries_train is None:
         number_of_entries_train = params.get('number_of_entries')
-    uid = "{ds}-S{S}-z{z}-sigma{sigma}-alpha-{alpha}-ada{ada}-dp{dp}-n{n}-{model}{depth}lr{lr}".format(
+    uid = "{ds}-S{S}-z{z}-sigma{sigma}-alpha-{alpha}-opt{opt}-dp{dp}-n{n}-{model}{depth}lr{lr}".format(
         ds=params['dataset'],
         S=params.get('S'),
         z=params.get('z'),
         sigma=params.get('sigma'), alpha=params.get('alpha'),
-        ada=params.get('adaptive_sigma', False),
+        opt=params['optimizer'],
         dp=str(params['dp']),
         n=number_of_entries_train,
         model=params['model'],
