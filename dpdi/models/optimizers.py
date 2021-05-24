@@ -5,7 +5,7 @@ from pyvacy.optim import DPSGD, DPAdam
 def get_optimizer(helper, net, dp: bool):
     opt_str = helper.params['optimizer']
     lr = helper.params['lr']
-    decay = helper.params['decay']
+    decay = float(helper.params['decay'])
     momentum = helper.params.get('momentum')
     # S =
     sigma = helper.params.get('sigma')
