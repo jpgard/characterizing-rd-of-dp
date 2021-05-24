@@ -330,8 +330,8 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
         )
 
         w_hat_dpols = diffprivlib.models.LinearRegression(
-            epsilon=eps, fit_intercept=False)\
-            .fit(X=X_tr, y=y_tr)\
+            epsilon=eps, fit_intercept=False) \
+            .fit(X=X_tr, y=y_tr) \
             .coef_
 
         disparity_metrics = compute_disparity(
@@ -399,15 +399,53 @@ def compute_nmax(df, alpha_grid):
     return min(n_max_0, n_max_1)
 
 
-def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=1e-1,
-                      alpha_grid=(0.7, 0.8, 0.9), niters=5, n_max=None, verbosity=1):
+def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbosity):
     n = len(df)
     T = n - s
     g = df.sensitive.values
     idxs_0 = sensitive_subgroup_indices(df, 0)
-    n_0 = len(idxs_0)
     idxs_1 = sensitive_subgroup_indices(df, 1)
+    n_0 = len(idxs_0)
     n_1 = len(idxs_1)
+
+    n_0_sample = math.floor((1 - alpha) * n_max)
+    n_1_sample = math.floor(alpha * n_max)
+    if verbosity > 0:
+        print("[INFO] sampling {} / {} from 1".format(n_1_sample, n_1))
+        print("[INFO] sampling {} / {} from 0".format(n_0_sample, n_0))
+    idxs_sample_0 = np.random.choice(idxs_0, size=n_0_sample, replace=False)
+    idxs_sample_1 = np.random.choice(idxs_1, size=n_1_sample, replace=False)
+    # subset the data
+    df_alpha = pd.concat((df.iloc[idxs_sample_0], df.iloc[idxs_sample_1]), axis=0)
+    # Compute dpsgd
+    _, _, w_hat_bar_sgd = tail_averaged_sgd(
+        X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
+        y=df_alpha['target'].values,
+        T=T, s=s,
+        lr=lr,
+        batch_size=1,
+        verbosity=0
+    )
+    _, _, w_hat_bar_dpsgd = dp_sgd(
+        X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
+        y=df_alpha['target'].values,
+        T=T, delta=delta, eps=eps, s=s,
+        lr=lr,
+        w_star=wstar,
+        batch_size=1,
+        verbosity=0
+    )
+    disparity_metrics = compute_disparity(
+        X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
+        g=df_alpha.sensitive.values, y=df_alpha.target.values,
+        sgd_w_hat=w_hat_bar_sgd, dpsgd_w_hat=w_hat_bar_dpsgd)
+    disparity_metrics["iternum"] = iternum
+    disparity_metrics["alpha"] = alpha
+    return disparity_metrics
+
+
+def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=1e-1,
+                      alpha_grid=(0.7, 0.8, 0.9), niters=5, n_max=None, verbosity=1):
     if n_max is None:
         n_max = compute_nmax(df, alpha_grid)
     results = list()
@@ -415,39 +453,8 @@ def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=
         print("N = {}, n_0 = {}, n_1 = {}".format(n, n_0, n_1))
     for iternum in range(niters):
         for alpha in alpha_grid:
-            n_0_sample = math.floor((1 - alpha) * n_max)
-            n_1_sample = math.floor(alpha * n_max)
-            if verbosity > 0:
-                print("[INFO] sampling {} / {} from 1".format(n_1_sample, n_1))
-                print("[INFO] sampling {} / {} from 0".format(n_0_sample, n_0))
-            idxs_sample_0 = np.random.choice(idxs_0, size=n_0_sample, replace=False)
-            idxs_sample_1 = np.random.choice(idxs_1, size=n_1_sample, replace=False)
-            # subset the data
-            df_alpha = pd.concat((df.iloc[idxs_sample_0], df.iloc[idxs_sample_1]), axis=0)
-            # Compute dpsgd
-            _, _, w_hat_bar_sgd = tail_averaged_sgd(
-                X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
-                y=df_alpha['target'].values,
-                T=T, s=s,
-                lr=lr,
-                batch_size=1,
-                verbosity=0
-            )
-            _, _, w_hat_bar_dpsgd = dp_sgd(
-                X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
-                y=df_alpha['target'].values,
-                T=T, delta=delta, eps=eps, s=s,
-                lr=lr,
-                w_star=wstar,
-                batch_size=1,
-                verbosity=0
-            )
-            disparity_metrics = compute_disparity(
-                X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
-                g=df_alpha.sensitive.values, y=df_alpha.target.values,
-                sgd_w_hat=w_hat_bar_sgd, dpsgd_w_hat=w_hat_bar_dpsgd, dpols_w_hat=)
-            disparity_metrics["iternum"] = iternum
-            disparity_metrics["alpha"] = alpha
+            disparity_metrics = alpha_experiment(df, wstar, iternum, alpha, eps, depta,
+                                                 lr, n_max, s, verbosity)
             results.append(disparity_metrics)
     return results
 
