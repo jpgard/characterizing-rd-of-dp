@@ -28,7 +28,7 @@ def get_transforms(is_train: bool, normalize: bool):
 
     resize = transforms.Resize([160, 160])
     rotate = transforms.RandomRotation(degrees=30)
-    crop_size = [128, 128]
+    crop_size = [200,200]
     random_crop = transforms.RandomCrop(crop_size)  # Crops the training image
     flip_aug = transforms.RandomHorizontalFlip()
     normalize_transf = transforms.Normalize(mean=mu, std=std)

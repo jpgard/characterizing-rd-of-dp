@@ -623,8 +623,6 @@ if __name__ == '__main__':
     true_labels_to_binary_labels, classes_to_keep = load_data(helper, params, alpha, mu)
     num_classes = helper.get_num_classes(classes_to_keep, is_regression)
 
-    # if dp and sigma != 0:
-    #     helper.compute_rdp(sigma)
     print('[DEBUG] num_classes is %s' % num_classes)
     reseed(5)
     net = get_net(helper, num_classes)
