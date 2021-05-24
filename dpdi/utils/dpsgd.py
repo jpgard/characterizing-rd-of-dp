@@ -449,11 +449,9 @@ def alpha_experiments(df: pd.DataFrame, s: int, lr: float, wstar, eps=50, delta=
     if n_max is None:
         n_max = compute_nmax(df, alpha_grid)
     results = list()
-    if verbosity > 0:
-        print("N = {}, n_0 = {}, n_1 = {}".format(n, n_0, n_1))
     for iternum in range(niters):
         for alpha in alpha_grid:
-            disparity_metrics = alpha_experiment(df, wstar, iternum, alpha, eps, depta,
+            disparity_metrics = alpha_experiment(df, wstar, iternum, alpha, eps, delta,
                                                  lr, n_max, s, verbosity)
             results.append(disparity_metrics)
     return results
