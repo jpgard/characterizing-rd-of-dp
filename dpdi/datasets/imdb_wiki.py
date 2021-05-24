@@ -100,9 +100,13 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
         sample = (image, idx, label)
         return sample
 
-    def get_attribute_annotations(self, idxs):
-        idx_annos = self.attributes[idxs]
-        return idx_annos
+    def get_attribute_annotations(self, idxs, default=1):
+        try:
+            idx_annos = self.attributes[idxs]
+            return idx_annos
+        except Exception as e:
+            print"[WARNING] exception fetching annotation at idx {}: {}".format(e)
+            return np.array(default)
 
     def apply_alpha_to_dataset(self, alpha, n_train):
         if alpha is not None:
