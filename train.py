@@ -498,15 +498,6 @@ def train(trainloader, model, optimizer, epoch, labels_mapping=None):
         else:
             inputs, labels = data
 
-        # We do not use key_to_drop, but this is left to keep compatibility with, and
-        # preserve reproducibility, for older versions of the params files.
-        if helper.params.get('key_to_drop'):
-            keys_input = labels == helper.params['key_to_drop']
-
-            inputs[keys_input] = torch.tensor(
-                ndimage.filters.gaussian_filter(inputs[keys_input].numpy(),
-                                                sigma=helper.params['csigma']))
-
         inputs = inputs.to(device)
         labels = labels.to(device)
         # zero the parameter gradients
