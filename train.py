@@ -49,10 +49,7 @@ def maybe_override_parameter(params: dict, args, parameter_name: str):
     return
 
 
-def get_optimizer(helper, dp:bool, delta=1e-5):
-    n = len(helper.train_dataset)
-    niters = math.ceil(helper.params['epochs'] *
-                       len(helper.train_dataset)/helper.params['batch_size'])
+def get_optimizer(helper, dp:bool):
     opt_str = helper.params['optimizer']
     if opt_str == 'SGD' and not dp:
         optimizer = optim.SGD(net.parameters(), lr=lr, momentum=momentum,
@@ -60,23 +57,17 @@ def get_optimizer(helper, dp:bool, delta=1e-5):
     elif opt_str == 'SGD' and dp:
         optimizer = DPSGD(params=net.parameters(), lr=lr, momentum=momentum,
                           weight_decay=decay,
-                          N=n,
                           l2_norm_clip=float(S),
                           noise_multiplier=sigma, minibatch_size=params['batch_size'],
-                          microbatch_size=params['microbatch_size'],
-                          delta=delta,
-                          iterations=niters)
+                          microbatch_size=params['microbatch_size'])
     elif opt_str == 'Adam' and not dp:
         optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=decay)
     elif opt_str == 'Adam' and dp:
         optimizer = DPAdam(params=net.parameters(), lr=lr,
                            weight_decay=decay,
-                            N=n,
                             l2_norm_clip=float(S),
                             noise_multiplier=sigma, minibatch_size=params['batch_size'],
-                            microbatch_size=params['microbatch_size'],
-                            delta=delta,
-                            iterations=niters)
+                            microbatch_size=params['microbatch_size'])
     else:
         raise Exception('Specify `optimizer` in params.yaml.')
     return optimizer
