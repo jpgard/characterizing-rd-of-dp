@@ -15,7 +15,7 @@ save_model: True
 dataset: imdb-wiki
 model: regressionnet
 scheduler: False
-optimizer: SGD
+optimizer: Adam
 
 
 root_dir: /projects/grail/jpgard/imdb-wiki
