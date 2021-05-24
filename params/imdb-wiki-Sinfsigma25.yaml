@@ -11,7 +11,7 @@ save_on_epochs: [39]
 # Instead of computing the noise variance sigma = z * S,
 # since we are not using clipping (S is undefined/infinite),
 # we explicitly set sigma.
-S: 1e9
+no_clip: True
 sigma: 25.0
 dp: True
 convert_batchnorm_modules: True  # required when using opacus

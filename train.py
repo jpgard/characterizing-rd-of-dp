@@ -2,6 +2,7 @@ import logging
 
 from dpdi.helper import get_helper
 from dpdi.models import get_net
+from dpdi.models.optimizers import get_optimizer
 
 SINGLE_CHANNEL_DATASETS = ('mnist', 'dsprites')
 
@@ -10,7 +11,6 @@ logger = logging.getLogger('logger')
 from datetime import datetime
 import math
 import argparse
-from scipy import ndimage
 from collections import defaultdict
 from tensorboardX import SummaryWriter
 from dpdi.models.simple import reseed
@@ -21,7 +21,6 @@ import yaml
 from dpdi.utils.text_load import *
 from dpdi.utils.utils import create_table, plot_confusion_matrix
 import pandas as pd
-from pyvacy.optim import DPSGD, DPAdam
 from pyvacy import sampling
 from torch.utils.data import TensorDataset
 
@@ -47,30 +46,6 @@ def maybe_override_parameter(params: dict, args, parameter_name: str):
                 .format(parameter_name, val))
         params[parameter_name] = val
     return
-
-
-def get_optimizer(helper, dp:bool):
-    opt_str = helper.params['optimizer']
-    if opt_str == 'SGD' and not dp:
-        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=momentum,
-                              weight_decay=decay)
-    elif opt_str == 'SGD' and dp:
-        optimizer = DPSGD(params=net.parameters(), lr=lr, momentum=momentum,
-                          weight_decay=decay,
-                          l2_norm_clip=float(S),
-                          noise_multiplier=sigma, minibatch_size=params['batch_size'],
-                          microbatch_size=params['microbatch_size'])
-    elif opt_str == 'Adam' and not dp:
-        optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=decay)
-    elif opt_str == 'Adam' and dp:
-        optimizer = DPAdam(params=net.parameters(), lr=lr,
-                           weight_decay=decay,
-                            l2_norm_clip=float(S),
-                            noise_multiplier=sigma, minibatch_size=params['batch_size'],
-                            microbatch_size=params['microbatch_size'])
-    else:
-        raise Exception('Specify `optimizer` in params.yaml.')
-    return optimizer
 
 
 def get_criterion(helper):
@@ -656,7 +631,7 @@ if __name__ == '__main__':
                 and args.channelwise_mean:
             compute_channelwise_mean(helper.train_loader)
 
-    optimizer = get_optimizer(helper, dp)
+    optimizer = get_optimizer(helper, net, dp)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                      milestones=[0.5 * epochs,
