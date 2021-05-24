@@ -545,6 +545,9 @@ if __name__ == '__main__':
                         default=None, type=float)
     parser.add_argument("--epochs", help="Optional argument to override epochs in params.",
                         default=None, type=int)
+    parser.add_argument("--optimizer",
+                        help="Optional argument to override optimizer in params.",
+                        default=None, type=int)
     parser.add_argument("--lr", type=float, default=None,
                         help="Optional argument to override lr in params.")
     parser.add_argument("--channelwise_mean", action="store_true",
@@ -558,7 +561,7 @@ if __name__ == '__main__':
         params = yaml.load(f)
 
     for pname in ("train_attribute_subset", 'sigma', 'epochs', 'alpha',
-                  'number_of_entries_train', 'lr'):
+                  'number_of_entries_train', 'lr', 'optimizer'):
         maybe_override_parameter(params, args, pname)
 
     name = make_uid(params, args)
