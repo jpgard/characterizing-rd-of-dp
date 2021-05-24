@@ -88,20 +88,17 @@ def build_dataset(H_min: np.array, H_maj: np.array, mu_min: np.array, mu_maj: np
     return X, g, y
 
 
-def compute_L_and_k(X, y, w_star, n, T, delta):
-    c = 2  # TODO:confirm value of c.
+def compute_sdp_constants(X, y, w_star):
     L_1 = np.linalg.norm(X, axis=1, ord=2).max()
     L_2 = np.abs(y).max()
     L_3 = np.linalg.norm(w_star, ord=2)
-    k = float(T) / n + c * sqrt((T / n) * ln(2 * n / delta))
-    return L_1, L_2, L_3, k
+    return L_1, L_2, L_3
 
 
-def compute_sigma_dp(L_1, L_2, L_3, k, delta, eps: float, n: int):
+def compute_sigma_dp(L_1, L_2, L_3, delta, eps: float):
     """Compute sigma_DP."""
     sigma_dp = (2 * (L_2 * L_3 + L_1 * L_3 ** 2)
-                * sqrt(2 * ln(1.25 * 2 * k / delta))
-                * sqrt(k * ln(2 * n / delta))
+                * sqrt(2 * ln(1.25 / delta))
                 / eps)
     return sigma_dp
 
@@ -154,10 +151,9 @@ def compute_rho_lr(H_min: np.array, H_maj: np.array, alpha, sigma_dp, sigma_nois
     return rho_lr
 
 
-def print_dpsgd_diagnostics(L_1, L_2, L_3, k, sigma_dp, n, delta):
+def print_dpsgd_diagnostics(L_1, L_2, L_3, sigma_dp, n, delta):
     """Print various important quantities used to compute sigma_DP."""
     print(f"L_1 = {L_1}; L_2 = {L_2}; L_3 = {L_3}")
-    print(f"k={k}")
     print("(L_2 * L_3 + L_1 * L_3**2): %s" % (L_2 * L_3 + L_1 * L_3 ** 2))
     print("sqrt(2 * ln(1.25 * 2 * k / delta)): %s" % sqrt(2 * ln(1.25 * 2 * k / delta)))
     print("sqrt(k * ln(2 * n / delta)): %s" % sqrt(k * ln(2 * n / delta)))
@@ -180,10 +176,10 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
     n, d = X.shape
     assert d == len(w_star), "shape mismatch between X and w_star"
     # Compute the various constants needed for the algorithm.
-    L_1, L_2, L_3, k = compute_L_and_k(X, y, w_star, n, T, delta)
-    sigma_dp = compute_sigma_dp(L_1, L_2, L_3, k=k, delta=delta, eps=eps, n=n)
+    L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
+    sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
     if verbosity > 0:
-        print_dpsgd_diagnostics(L_1, L_2, L_3, k=k, sigma_dp=sigma_dp, n=n, delta=delta)
+        print_dpsgd_diagnostics(L_1, L_2, L_3, sigma_dp=sigma_dp, n=n, delta=delta)
 
     # Initialization
     loader = build_loader(X, y, batch_size)
@@ -374,8 +370,8 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     #  mu is the smallest eigenvalue of H, but we ignore the intercept term
     # . which is associated with an eigenvalue of zero.
     mu = np.sort(np.linalg.eigvals(H))[1]
-    L_1, L_2, L_3, k = compute_L_and_k(X, y, w_star, n, T, delta)
-    sigma_dp = compute_sigma_dp(L_1, L_2, L_3, k=k, delta=delta, eps=eps, n=n)
+    L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
+    sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
     bias_term = (2 / (gamma * T * mu * alpha) ** 2) \
                 * (1 - gamma * mu) ** (s + 1) \
                 * (compute_mse(X, y, w_init) - compute_mse(X, y, w_star))
