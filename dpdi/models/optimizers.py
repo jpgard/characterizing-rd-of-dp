@@ -11,8 +11,8 @@ def get_optimizer(helper, net, dp: bool):
     sigma = helper.params.get('sigma')
     microbatch_size = helper.params.get('microbatch_size')
     batch_size = helper.params.get('batch_size')
-    l2_norm_clip = None if (helper.params.get('no_clip')) else float(helper.params['S'])
-    if l2_norm_clip is None:
+    l2_norm_clip = None if (helper.params.get('no_clip')) else float(helper.params.get('S'))
+    if dp and (l2_norm_clip is None):
         print("[DEBUG] optimizer uses no clipping.")
     if opt_str == 'SGD' and not dp:
         optimizer = optim.SGD(net.parameters(), lr=lr, momentum=momentum,
