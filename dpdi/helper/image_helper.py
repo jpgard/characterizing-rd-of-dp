@@ -305,93 +305,6 @@ class ImageHelper(Helper):
                 self.unnormalized_test_dataset, batch_size=self.params['test_batch_size'],
                 num_workers=8, pin_memory=True, drop_last=True)
 
-    def load_faces_data(self):
-
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
-        transform = transforms.Compose(
-            [transforms.ToTensor(),
-             normalize])
-
-        if os.path.exists('data/utk/train_ds.pt') and os.path.exists(
-                'data/utk/test_ds.pt'):
-            logger.info('DS already exists. Loading.')
-            self.train_dataset = torch.load('data/utk/train_ds.pt')
-            self.test_dataset = torch.load('data/utk/test_ds.pt')
-        else:
-            self.train_dataset = torchvision.datasets.ImageFolder(
-                'data/utk/clustered/gender/', transform=transform)
-            torch.save(self.train_dataset, 'data/utk/train_ds.pt')
-            self.test_dataset = torchvision.datasets.ImageFolder('data/utk/test/gender/',
-                                                                 transform=transform)
-            torch.save(self.test_dataset, 'data/utk/test_ds.pt')
-
-        self.races = {'white': 0, 'black': 1, 'asian': 2, 'indian': 3, 'other': 4}
-        self.inverted_races = dict([[v, k] for k, v in self.races.items()])
-
-        race_ds = dict()
-        race_loaders = dict()
-        for name, i in self.races.items():
-            race_ds[i] = torchvision.datasets.ImageFolder(
-                f'data/utk/test_gender/race/{i}/', transform=transform)
-            race_loaders[i] = torch.utils.data.DataLoader(race_ds[i], batch_size=8,
-                                                          shuffle=True, num_workers=2)
-        self.race_datasets = race_ds
-        self.race_loaders = race_loaders
-
-        self.test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=8,
-                                                       shuffle=True, num_workers=2)
-        self.train_loader = torch.utils.data.DataLoader(self.test_dataset,
-                                                        batch_size=self.params[
-                                                            'batch_size'],
-                                                        shuffle=True, num_workers=2,
-                                                        drop_last=True)
-        self.dataset_size = len(self.train_dataset)
-        logger.info(self.dataset_size)
-        return True
-
-    def load_inat_data(self):
-        self.mu_data = [0.485, 0.456, 0.406]
-        self.std_data = [0.229, 0.224, 0.225]
-        self.im_size = [299, 299]
-        self.brightness = 0.4
-        self.contrast = 0.4
-        self.saturation = 0.4
-        self.hue = 0.25
-
-        self.center_crop = transforms.CenterCrop((self.im_size[0], self.im_size[1]))
-        self.scale_aug = transforms.RandomResizedCrop(size=self.im_size[0])
-        self.flip_aug = transforms.RandomHorizontalFlip()
-        self.color_aug = transforms.ColorJitter(self.brightness, self.contrast,
-                                                self.saturation, self.hue)
-        self.tensor_aug = transforms.ToTensor()
-        self.norm_aug = transforms.Normalize(mean=self.mu_data, std=self.std_data)
-        normalize = transforms.Normalize(mean=self.mu_data, std=self.std_data)
-
-        transform_train = transforms.Compose(
-            [self.scale_aug, self.flip_aug, self.color_aug, transforms.ToTensor(),
-             normalize])
-        transform_test = transforms.Compose(
-            [self.center_crop, transforms.ToTensor(), normalize])
-
-        self.train_dataset = torchvision.datasets.ImageFolder(
-            '/media/classes', transform=transform_train)
-        logger.info('len train before : ', len(self.train_dataset))
-
-        self.test_dataset = torchvision.datasets.ImageFolder(
-            '/media/classes_test', transform=transform_test)
-        logger.info('len test: ', len(self.test_dataset))
-        self.labels = list(range(len(os.listdir('/media/classes_test/'))))
-        logger.info(self.labels)
-        self.test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=8,
-                                                       shuffle=True, num_workers=2)
-        self.train_loader = torch.utils.data.DataLoader(self.train_dataset,
-                                                        batch_size=self.params[
-                                                            'batch_size'],
-                                                        shuffle=True, num_workers=2,
-                                                        drop_last=True)
-        self.dataset_size = len(self.train_dataset)
-        return True
 
     def balance_loaders(self):
         per_class_index = defaultdict(list)
@@ -423,24 +336,6 @@ class ImageHelper(Helper):
                                                             'batch_size'],
                                                         sampler=train_sampler,
                                                         num_workers=2, drop_last=True)
-
-    def get_unbalanced_faces(self):
-        self.unbalanced_loaders = dict()
-        files = os.listdir(self.params['folder_per_class'])
-        # logger.info(files)
-        for x in sorted(files):
-            indices = torch.load(f"{self.params['folder_per_class']}/{x}")
-            # logger.info(f'unbalanced: {x}, {len(indices)}')
-            sampler = torch.utils.data.sampler.SubsetRandomSampler(indices=indices)
-            self.unbalanced_loaders[x] = torch.utils.data.DataLoader(self.test_dataset,
-                                                                     batch_size=
-                                                                     self.params[
-                                                                         'test_batch_size'],
-                                                                     sampler=sampler,
-                                                                     num_workers=2,
-                                                                     drop_last=True)
-
-        return True
 
     def load_zillow_data(self):
         self.train_dataset = ZillowDataset(
