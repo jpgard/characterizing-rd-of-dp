@@ -607,7 +607,6 @@ if __name__ == '__main__':
     logger.info(f'experiment uid: {name}')
     logger.info(f'current path: {helper.folder_path}')
     batch_size = int(helper.params['batch_size'])
-    num_microbatches = int(helper.params['num_microbatches'])
     lr = float(helper.params['lr'])
     momentum = float(helper.params['momentum'])
     decay = float(helper.params['decay'])
