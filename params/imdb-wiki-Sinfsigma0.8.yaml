@@ -16,7 +16,7 @@ save_on_epochs: [39]
 # since we are not using clipping (S is undefined/infinite),
 # we explicitly set sigma.
 no_clip: True
-sigma: 25.0
+sigma: 0.8
 dp: True
 #convert_batchnorm_modules: True  # required when using opacus
 
