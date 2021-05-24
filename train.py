@@ -322,6 +322,10 @@ def test(net, epoch, name, testloader, vis=True, mse: bool = False,
                 main_test_metric = running_metric_total / n_test
 
             if helper.params['dataset'] in MINORITY_PERFORMANCE_TRACK_DATASETS:
+                # hack to avoid error which causes training to fail in some
+                # not-understood cases, dataloader yields index of len(test_dataset).
+                if torch.max(idxs) > len(helper.test_dataset) - 1:
+                    continue
                 # batch_attr_labels is an array of shape [batch_size] where the
                 # ith entry is either 1/0/nan and correspond to the attribute labels
                 # of the ith element in the batch.
