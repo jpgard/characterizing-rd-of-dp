@@ -105,7 +105,7 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
             idx_annos = self.attributes[idxs]
             return idx_annos
         except Exception as e:
-            print("[WARNING] exception fetching annotation at idx {}: {}".formatidxs, (e))
+            print("[WARNING] exception fetching annotation at idx {}: {}".format(idxs, (e)))
             import ipdb;ipdb.set_trace()
             # return np.array(default)
 
