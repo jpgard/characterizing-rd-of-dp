@@ -125,7 +125,7 @@ def compute_disparity(X: np.array, g: np.array, y: np.array, sgd_w_hat: np.array
                "loss_dpsgd_1": loss_dpsgd_1,
                "loss_sgd_0": loss_sgd_0,
                "loss_sgd_1": loss_sgd_1}
-    if dpols_w_hat:
+    if dpols_w_hat is not None:
         metrics["loss_dpols_0"] = np.mean(((X_minor @ dpols_w_hat) - y_minor) ** 2)
         metrics["loss_dpols_1"] = np.mean(((X_major @ dpols_w_hat) - y_major) ** 2)
     return metrics
