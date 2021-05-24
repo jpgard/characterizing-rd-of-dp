@@ -11,7 +11,7 @@ import pandas as pd
 import math
 import itertools
 from collections import defaultdict
-from diffprivlib.models import LinearRegression
+import diffprivlib
 
 RANDOM_SEED = 983445
 
@@ -339,7 +339,10 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
             verbosity=verbosity
         )
 
-        w_hat_dpols = LinearRegression(epsilon=eps).fit(X=X_tr, y=y_tr).coef_
+        w_hat_dpols = diffprivlib.models.LinearRegression(
+            epsilon=eps, fit_intercept=False)\
+            .fit(X=X_tr, y=y_tr)\
+            .coef_
 
         disparity_metrics = compute_disparity(
             X=test_df.drop(['sensitive', 'target'], axis=1).values,
