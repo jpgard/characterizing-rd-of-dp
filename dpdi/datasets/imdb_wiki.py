@@ -105,8 +105,9 @@ class IMDBWikiDataset(torch.utils.data.Dataset):
             idx_annos = self.attributes[idxs]
             return idx_annos
         except Exception as e:
-            print("[WARNING] exception fetching annotation at idx {}: {}".format(e))
-            return np.array(default)
+            print("[WARNING] exception fetching annotation at idx {}: {}".formatidxs, (e))
+            import ipdb;ipdb.set_trace()
+            # return np.array(default)
 
     def apply_alpha_to_dataset(self, alpha, n_train):
         if alpha is not None:
