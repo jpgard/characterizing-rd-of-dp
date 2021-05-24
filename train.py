@@ -8,6 +8,7 @@ SINGLE_CHANNEL_DATASETS = ('mnist', 'dsprites')
 logger = logging.getLogger('logger')
 
 from datetime import datetime
+import math
 import argparse
 from scipy import ndimage
 from collections import defaultdict
@@ -20,6 +21,9 @@ import yaml
 from dpdi.utils.text_load import *
 from dpdi.utils.utils import create_table, plot_confusion_matrix
 import pandas as pd
+from pyvacy.optim import DPSGD, DPAdam
+from pyvacy import sampling
+from torch.utils.data import TensorDataset
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -45,12 +49,34 @@ def maybe_override_parameter(params: dict, args, parameter_name: str):
     return
 
 
-def get_optimizer(helper):
-    if helper.params['optimizer'] == 'SGD':
+def get_optimizer(helper, dp:bool, delta=1e-5):
+    n = len(helper.train_dataset)
+    niters = math.ceil(helper.params['epochs'] *
+                       len(helper.train_dataset)/helper.params['batch_size'])
+    opt_str = helper.params['optimizer']
+    if opt_str == 'SGD' and not dp:
         optimizer = optim.SGD(net.parameters(), lr=lr, momentum=momentum,
                               weight_decay=decay)
-    elif helper.params['optimizer'] == 'Adam':
+    elif opt_str == 'SGD' and dp:
+        optimizer = DPSGD(params=net.parameters(), lr=lr, momentum=momentum,
+                          weight_decay=decay,
+                          N=n,
+                          l2_norm_clip=float(S),
+                          noise_multiplier=sigma, minibatch_size=params['batch_size'],
+                          microbatch_size=params['microbatch_size'],
+                          delta=delta,
+                          iterations=niters)
+    elif opt_str == 'Adam' and not dp:
         optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=decay)
+    elif opt_str == 'Adam' and dp:
+        optimizer = DPAdam(params=net.parameters(), lr=lr, momentum=momentum,
+                           weight_decay=decay,
+                            N=n,
+                            l2_norm_clip=float(S),
+                            noise_multiplier=sigma, minibatch_size=params['batch_size'],
+                            microbatch_size=params['microbatch_size'],
+                            delta=delta,
+                            iterations=niters)
     else:
         raise Exception('Specify `optimizer` in params.yaml.')
     return optimizer
@@ -466,15 +492,6 @@ def train(trainloader, model, optimizer, epoch, labels_mapping=None):
         else:
             inputs, labels = data
 
-        # We do not use key_to_drop, but this is left to keep compatibility with, and
-        # preserve reproducibility, for older versions of the params files.
-        if helper.params.get('key_to_drop'):
-            keys_input = labels == helper.params['key_to_drop']
-
-            inputs[keys_input] = torch.tensor(
-                ndimage.filters.gaussian_filter(inputs[keys_input].numpy(),
-                                                sigma=helper.params['csigma']))
-
         inputs = inputs.to(device)
         labels = labels.to(device)
         # zero the parameter gradients
@@ -493,6 +510,48 @@ def train(trainloader, model, optimizer, epoch, labels_mapping=None):
             loss = criterion(outputs, labels)
         loss = torch.mean(loss)
         loss.backward()
+        optimizer.step()
+        if i > 0 and i % 20 == 0:
+            plot(epoch * len(trainloader) + i, loss.item(), 'Train Loss')
+
+
+def unpack_batch(batch, dataset):
+    if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
+        inputs, idxs, labels = batch
+    else:
+        inputs, labels = batch
+        idxs = None
+    return inputs, idxs, labels
+
+
+def train_dp(trainloader, model, optimizer, epoch, labels_mapping=None):
+    model.train()
+    minibatch_loader, microbatch_loader = sampling.get_data_loaders(
+        helper.params['batch_size'],
+        helper.params['microbatch_size'],
+        math.ceil(len(helper.train_dataset) / helper.params['batch_size'])
+    )
+    for i, data in tqdm(enumerate(minibatch_loader(helper.train_dataset), 0), leave=True):
+        inputs, _, labels = unpack_batch(data, helper.params['dataset'])
+        optimizer.zero_grad()
+        for inputs_microbatch, labels_microbatch in microbatch_loader(TensorDataset(inputs, labels)):
+            inputs_microbatch = inputs_microbatch.to(device)
+            labels_microbatch = labels_microbatch.to(device)
+            optimizer.zero_microbatch_grad()
+
+            outputs = model(inputs_microbatch)
+
+            if labels_mapping:
+                pos_labels = [k for k, v in labels_mapping.items() if v == 1]
+                labels_type = torch.float32 if isinstance(criterion,
+                                                          torch.nn.MSELoss) else torch.long
+                binarized_labels_tensor = binarize_labels_tensor(labels_microbatch, pos_labels, labels_type)
+                loss = criterion(outputs, binarized_labels_tensor)
+            else:
+                loss = criterion(outputs, labels_microbatch)
+            loss = torch.mean(loss)
+            loss.backward()
+            optimizer.microbatch_step()
         optimizer.step()
         if i > 0 and i % 20 == 0:
             plot(epoch * len(trainloader) + i, loss.item(), 'Train Loss')
@@ -609,8 +668,7 @@ if __name__ == '__main__':
                 and args.channelwise_mean:
             compute_channelwise_mean(helper.train_loader)
 
-    optimizer = get_optimizer(helper)
-
+    optimizer = get_optimizer(helper, dp)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
                                                      milestones=[0.5 * epochs,
@@ -628,8 +686,12 @@ if __name__ == '__main__':
 
     try:
         for epoch in range(helper.start_epoch, epochs):
-            train(helper.train_loader, net, optimizer, epoch,
+            if dp:
+                train_dp(helper.train_loader, net, optimizer, epoch,
                       labels_mapping=true_labels_to_binary_labels)
+            else:
+                train(helper.train_loader, net, optimizer, epoch,
+                          labels_mapping=true_labels_to_binary_labels)
             if helper.params['scheduler']:
                 scheduler.step()
             test_loss = test(net, epoch, name, helper.test_loader,
