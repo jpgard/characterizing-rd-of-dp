@@ -665,6 +665,7 @@ if __name__ == '__main__':
                              mse=metric_name == 'mse',
                              labels_mapping=true_labels_to_binary_labels)
             helper.save_model(net, epoch, test_loss)
+            writer.flush()
     except KeyboardInterrupt:
         print("[KeyboardInterrupt; logged to: {}".format(uid_logdir))
     helper.save_model(net, epoch, test_loss)
