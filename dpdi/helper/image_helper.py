@@ -298,11 +298,12 @@ class ImageHelper(Helper):
                                                        batch_size=self.params[
                                                            'test_batch_size'],
                                                        pin_memory=True,
-                                                       num_workers=8)
+                                                       num_workers=8,
+                                                       drop_last=True)
         if hasattr(self, 'unnormalized_test_dataset'):
             self.unnormalized_test_loader = torch.utils.data.DataLoader(
                 self.unnormalized_test_dataset, batch_size=self.params['test_batch_size'],
-                num_workers=8, pin_memory=True)
+                num_workers=8, pin_memory=True, drop_last=True)
 
     def load_faces_data(self):
 
