@@ -101,7 +101,7 @@ class RegressionNet(SimpleNet):
     def __init__(self):
         super(RegressionNet, self).__init__()
         self.model = torch.nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, stride=1), # 64 --> 62
+            nn.Conv2d(3, 16, kernel_size=3, stride=1), # 64 --> 62
             nn.ReLU(),
             nn.Conv2d(16, 32, kernel_size=3, stride=1), # 62 --> 60
             nn.ReLU(),
