@@ -13,11 +13,9 @@ criterion: mse
 
 save_model: True
 dataset: imdb-wiki
-model: PretrainedRegressionRes
-resnet_depth: 18
-freeze_pretrained_weights: False
+model: regressionnet
 scheduler: False
-optimizer: Adam
+optimizer: SGD
 
 
 root_dir: /projects/grail/jpgard/imdb-wiki
