@@ -637,8 +637,8 @@ if __name__ == '__main__':
     optimizer = get_optimizer(helper)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
-                                                     milestones=[0.5 * epochs,
-                                                                 0.75 * epochs],
+                                                     milestones=[int(0.5 * epochs),
+                                                                 int(0.75 * epochs)],
                                                      gamma=0.1)
     table = create_table(helper.params)
     writer.add_text('Model Params', table)
