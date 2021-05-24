@@ -413,7 +413,7 @@ def train_dp(trainloader, model, optimizer, epoch, sigma, alpha, labels_mapping=
     for i, data in tqdm(enumerate(trainloader, 0), leave=True):
         if helper.params['dataset'] in TRIPLET_YIELDING_DATASETS:
             inputs, idxs, labels = data
-            attrs = helper.test_dataset.get_attribute_annotations(idxs)
+            attrs = helper.train_dataset.get_attribute_annotations(idxs)
         else:
             inputs, labels = data
 
