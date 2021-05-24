@@ -1,4 +1,5 @@
 from torch import optim as optim
+from pyvacy.optim import DPSGD, DPAdam
 
 
 def get_optimizer(helper, net, dp: bool):
