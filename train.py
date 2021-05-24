@@ -492,13 +492,16 @@ def unpack_batch(batch, dataset):
 
 def train_dp(trainloader, model, optimizer, epoch, labels_mapping=None):
     model.train()
+    niters = math.ceil(len(helper.train_dataset) / helper.params['batch_size'])
     minibatch_loader, microbatch_loader = sampling.get_data_loaders(
         helper.params['batch_size'],
         helper.params['microbatch_size'],
-        math.ceil(len(helper.train_dataset) / helper.params['batch_size'])
+        niters
     )
     for i, data in tqdm(enumerate(minibatch_loader(helper.train_dataset), 0), leave=True):
         inputs, _, labels = unpack_batch(data, helper.params['dataset'])
+        inputs = inputs.to(device)
+        labels = labels.to(device)
         optimizer.zero_grad()
         for inputs_microbatch, labels_microbatch in microbatch_loader(TensorDataset(inputs, labels)):
             inputs_microbatch = inputs_microbatch.to(device)
@@ -637,8 +640,8 @@ if __name__ == '__main__':
     optimizer = get_optimizer(helper, net, dp)
 
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer,
-                                                     milestones=[0.5 * epochs,
-                                                                 0.75 * epochs],
+                                                     milestones=[int(0.5 * epochs),
+                                                                 int(0.75 * epochs)],
                                                      gamma=0.1)
     table = create_table(helper.params)
     writer.add_text('Model Params', table)
@@ -663,14 +666,6 @@ if __name__ == '__main__':
             test_loss = test(net, epoch, name, helper.test_loader,
                              mse=metric_name == 'mse',
                              labels_mapping=true_labels_to_binary_labels)
-            # TODO(jpgard): debug, or remove this. Currently, it computes norm of
-            #  ENTIRE model gradients tensor, which is not what I believe we want
-            #  under DP. should look more like the dp-sgd code sample here:
-            #  https://medium.com/pytorch/differential-privacy-series-part-1-dp-sgd-algorithm-explained-12512c3959a3
-            #  where gradients with respect to *each* parameter are taken.
-            # sample_grad_norms(epoch, helper.test_loader, n_batches=3,
-            #                       mse=metric_name == 'mse',
-            #                       labels_mapping=true_labels_to_binary_labels)
 
             helper.save_model(net, epoch, test_loss)
     except KeyboardInterrupt:
