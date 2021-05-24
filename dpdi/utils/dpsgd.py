@@ -11,6 +11,7 @@ import pandas as pd
 import math
 import itertools
 from collections import defaultdict
+from diffprivlib.models import LinearRegression
 
 RANDOM_SEED = 983445
 
@@ -106,18 +107,22 @@ def compute_sigma_dp(L_1, L_2, L_3, k, delta, eps: float, n: int):
 
 
 def compute_disparity(X: np.array, g: np.array, y: np.array, sgd_w_hat: np.array,
-                      dpsgd_w_hat: np.array, verbose=True):
+                      dpsgd_w_hat: np.array, dpols_w_hat, verbose=True):
     """Compute the quantities defined as rho and phi in the paper, along with their
     constituents."""
     loss_sgd_0 = np.mean(((X[g == 0, :] @ sgd_w_hat) - y[g == 0]) ** 2)
     loss_sgd_1 = np.mean(((X[g == 1, :] @ sgd_w_hat) - y[g == 1]) ** 2)
     loss_dpsgd_0 = np.mean(((X[g == 0, :] @ dpsgd_w_hat) - y[g == 0]) ** 2)
     loss_dpsgd_1 = np.mean(((X[g == 1, :] @ dpsgd_w_hat) - y[g == 1]) ** 2)
+    loss_dpols_0 = np.mean(((X[g == 0, :] @ dpols_w_hat) - y[g == 0]) ** 2)
+    loss_dpols_1 = np.mean(((X[g == 1, :] @ dpols_w_hat) - y[g == 1]) ** 2)
     rho = (loss_dpsgd_0 - loss_dpsgd_1) / (loss_sgd_0 - loss_sgd_1)
     phi = (loss_dpsgd_0 - loss_sgd_0) / (loss_dpsgd_1 - loss_sgd_1)
     if verbose:
         print(f"loss_dpsgd_0: {loss_dpsgd_0}")
         print(f"loss_dpsgd_1: {loss_dpsgd_1}")
+        print(f"loss_dpols_0: {loss_dpols_0}")
+        print(f"loss_dpols_1: {loss_dpols_1}")
         print(f"loss_sgd_0: {loss_sgd_0}")
         print(f"loss_sgd_1: {loss_sgd_1}")
         print("[INFO] rho : {} = {} / {}".format(rho, loss_dpsgd_0 - loss_dpsgd_1,
@@ -128,6 +133,8 @@ def compute_disparity(X: np.array, g: np.array, y: np.array, sgd_w_hat: np.array
                "phi": phi,
                "loss_dpsgd_0": loss_dpsgd_0,
                "loss_dpsgd_1": loss_dpsgd_1,
+               "loss_dpols_0": loss_dpols_0,
+               "loss_dpols_1": loss_dpols_1,
                "loss_sgd_0": loss_sgd_0,
                "loss_sgd_1": loss_sgd_1}
     return metrics
@@ -310,9 +317,11 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
                           verbosity=1):
     """Function to run the disparity experiments for each dataset."""
     results = list()
+    X_tr = train_df.drop(['sensitive', 'target'], axis=1).values
+    y_tr = train_df['target'].values
     _, _, w_hat_bar_sgd = tail_averaged_sgd(
-        X=train_df.drop(['sensitive', 'target'], axis=1).values,
-        y=train_df['target'].values,
+        X=X_tr,
+        y=y_tr,
         T=T, s=s,
         lr=lr,
         batch_size=1,
@@ -321,8 +330,8 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
 
     for eps in epsgrid:
         _, _, w_hat_bar_dpsgd = dp_sgd(
-            X=train_df.drop(['sensitive', 'target'], axis=1).values,
-            y=train_df['target'].values,
+            X=X_tr,
+            y=y_tr,
             T=T, delta=delta, eps=eps, s=s,
             lr=lr,
             w_star=wstar,
@@ -330,12 +339,15 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
             verbosity=verbosity
         )
 
+        w_hat_dpols = LinearRegression(epsilon=eps).fit(X=X_tr, y=y_tr).coef_
+
         disparity_metrics = compute_disparity(
             X=test_df.drop(['sensitive', 'target'], axis=1).values,
             g=test_df.sensitive.values,
             y=test_df.target.values,
             dpsgd_w_hat=w_hat_bar_dpsgd,
             sgd_w_hat=w_hat_bar_sgd,
+            dpols_w_hat=w_hat_dpols,
             verbose=False
         )
         disparity_metrics["eps"] = eps
