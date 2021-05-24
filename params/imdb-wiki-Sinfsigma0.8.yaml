@@ -6,7 +6,7 @@ batch_size: 128
 # the same privacy, and likely faster convergence. Although this will increase the runtime.
 microbatch_size: 16
 lr: 0.001
-momentum: 0.9
+#momentum: 0.9
 decay: 5e-4
 epochs: 40
 n_train: 90000

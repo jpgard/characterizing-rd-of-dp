@@ -69,7 +69,7 @@ def get_optimizer(helper, dp:bool, delta=1e-5):
     elif opt_str == 'Adam' and not dp:
         optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=decay)
     elif opt_str == 'Adam' and dp:
-        optimizer = DPAdam(params=net.parameters(), lr=lr, momentum=momentum,
+        optimizer = DPAdam(params=net.parameters(), lr=lr,
                            weight_decay=decay,
                             N=n,
                             l2_norm_clip=float(S),
@@ -608,7 +608,7 @@ if __name__ == '__main__':
     logger.info(f'current path: {helper.folder_path}')
     batch_size = int(helper.params['batch_size'])
     lr = float(helper.params['lr'])
-    momentum = float(helper.params['momentum'])
+    momentum = float(helper.params.get('momentum', 0))
     decay = float(helper.params['decay'])
     epochs = int(helper.params['epochs'])
     z = helper.params.get('z')
