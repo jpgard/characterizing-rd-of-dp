@@ -12,6 +12,7 @@ import math
 import itertools
 from collections import defaultdict
 import diffprivlib
+from multiprocessing import Pool
 
 RANDOM_SEED = 983445
 
@@ -383,7 +384,7 @@ def sensitive_subgroup_indices(df, i):
     return np.nonzero(df.sensitive.values == i)[0]
 
 
-def compute_nmax(df, alpha_grid):
+def compute_nmax(df, alpha_grid, verbose=True):
     n_0 = len(sensitive_subgroup_indices(df, 0))
     n_1 = len(sensitive_subgroup_indices(df, 1))
     alpha_min = min(alpha_grid)
@@ -392,10 +393,11 @@ def compute_nmax(df, alpha_grid):
     n_max_0 = math.floor(n_0 / float(1 - alpha_min))
     # Compute limit on total size n given the largest number of majority samples needed
     n_max_1 = math.floor(n_1 / float(alpha_max))
-    if n_max_0 < n_max_1:
-        print("[INFO] max sample size is {} constrained by minority".format(n_max_0))
-    else:
-        print("[INFO] max sample size is {} constrained by majority".format(n_max_1))
+    if verbose:
+        if n_max_0 < n_max_1:
+            print("[INFO] max sample size is {} constrained by minority".format(n_max_0))
+        else:
+            print("[INFO] max sample size is {} constrained by majority".format(n_max_1))
     return min(n_max_0, n_max_1)
 
 
