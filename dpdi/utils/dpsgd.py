@@ -351,7 +351,7 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
     return pd.DataFrame(results)
 
 
-def compute_loss_bound_bias_term(X, y, w_star, gamma, T, mu, alpha, w_init):
+def compute_loss_bound_bias_term(X, y, w_star, gamma, T, s, mu, alpha, w_init):
     val = (2 / (gamma * T * mu * alpha) ** 2) \
           * (1 - gamma * mu) ** (s + 1) \
           * (compute_mse(X, y, w_init) - compute_mse(X, y, w_star))
@@ -391,7 +391,7 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     mu = np.sort(np.linalg.eigvals(H))[1]
     L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
     sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
-    bias_term = compute_loss_bound_bias_term(X, y, w_star, gamma, T, mu, alpha, w_init)
+    bias_term = compute_loss_bound_bias_term(X, y, w_star, gamma, T, s, mu, alpha, w_init)
     variance_term = compute_loss_bound_variance_term(H_j, H, H_inv, sigma_noise, sigma_dp,
                                                      d, T)
     resamp_term = compute_loss_bound_resamp_term(H_j, H_inv, sigma_noise, n, T, gamma)
