@@ -12,7 +12,6 @@ import math
 import itertools
 from collections import defaultdict
 import diffprivlib
-from multiprocessing import Pool
 
 RANDOM_SEED = 983445
 
