@@ -355,15 +355,17 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
 def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
                                 delta: float, gamma: float, T: int, s: int,
                                 w_star,
-                                sigma_noise=1.):
+                                sigma_noise=1., H=None, H_j=None):
     attrs = df['sensitive'].values
     alpha = attrs.mean()
     X = df.drop(columns=['target', 'sensitive']).values
     y = df['target'].values
     w_init = np.zeros_like(w_star)
     n, d = X.shape
-    H_j = np.cov(X[attrs == j], rowvar=False)
-    H = np.cov(X, rowvar=False)
+    if H_j is None:  # True H_j not known; estimate from data
+        H_j = np.cov(X[attrs == j], rowvar=False)
+    if H is None:  # True H not known; estimate from data
+        H = np.cov(X, rowvar=False)
     H_inv = np.linalg.pinv(H)
     #  mu is the smallest eigenvalue of H, but we ignore the intercept term
     # . which is associated with an eigenvalue of zero.
