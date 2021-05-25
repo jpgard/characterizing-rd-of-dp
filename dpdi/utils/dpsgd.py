@@ -375,8 +375,10 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
                                 delta: float, gamma: float, T: int, s: int,
                                 w_star,
                                 sigma_noise=1., H=None, H_j=None):
+    assert j in [0,1], "Subgroup j must be 0 or 1."
     attrs = df['sensitive'].values
-    alpha = attrs.mean()
+    # "Alpha" is the fraction of observations in group j.
+    alpha = (attrs == j).mean()
     X = df.drop(columns=['target', 'sensitive']).values
     y = df['target'].values
     w_init = np.zeros_like(w_star)
