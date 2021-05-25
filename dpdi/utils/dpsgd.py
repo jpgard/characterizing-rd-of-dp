@@ -379,7 +379,7 @@ def compute_loss_bound_resamp_term(H_j, H_inv, sigma_noise, n, T, gamma):
 
 def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
                                 delta: float, gamma: float, T: int, s: int,
-                                w_star, includes_intercept:bool,
+                                w_star,
                                 sigma_noise=1., H=None, H_j=None):
     assert j in [0, 1], "Subgroup j must be 0 or 1."
     attrs = df['sensitive'].values
@@ -397,9 +397,11 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     #  mu is the smallest eigenvalue of H, but if there is an intercept,
     #  we ignore the intercept term
     # . which is associated with an eigenvalue of zero.
-    if includes_intercept:
+    if 'intercept' in df.columns:
+        print("[DEBUG] intercept detected; taking second-smallest eigenvalue for mu.")
         mu = np.sort(np.linalg.eigvals(H))[1]
     else:
+        print("[DEBUG] no detected; taking smallest eigenvalue for mu.")
         mu = np.sort(np.linalg.eigvals(H))[0]
     L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
     sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
