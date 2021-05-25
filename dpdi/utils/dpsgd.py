@@ -210,7 +210,7 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
                 w_hat -= lr * (w_hat.grad + grad_noise)
 
                 # Project back onto ball of radius L_3
-                w_hat_norm = torch.norm(w_hat, p=2)
+                w_hat_norm = torch.linalg.norm(w_hat, ord=2)
                 w_hat /= w_hat_norm
                 w_hat *= L_3
 
@@ -373,7 +373,7 @@ def compute_loss_bound_variance_term(H_j, H, H_inv, sigma_noise, sigma_dp, d, T)
 
 
 def compute_loss_bound_resamp_term(H_j, H_inv, sigma_noise, n, T, gamma):
-    val = ((2 / n * T * gamma) * np.trace(H_j @ H_inv * sigma_noise ** 2))
+    val = ((2 / (n * T * gamma)) * np.trace(H_j @ H_inv * sigma_noise ** 2))
     return val
 
 
