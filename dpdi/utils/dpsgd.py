@@ -42,8 +42,11 @@ def build_loader(X, y, batch_size=64, shuffle=False, replacement=False):
     inputs = torch.from_numpy(X).double()
     targets = torch.from_numpy(y).double()
     train_ds = torch.utils.data.TensorDataset(inputs, targets)
-    resampling_sampler = torch.utils.data.RandomSampler(train_ds, replacement=replacement,
-                                                        num_samples=batch_size)
+    if replacement:
+        resampling_sampler = torch.utils.data.RandomSampler(train_ds, replacement=True,
+                                                            num_samples=batch_size)
+    else:
+        resampling_sampler = torch.utils.data.RandomSampler(train_ds, replacement=False)
     loader = torch.utils.data.DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle,
                                          sampler=resampling_sampler)
     return loader
@@ -363,9 +366,9 @@ def compute_loss_bound_bias_term(X, y, w_star, gamma, T, s, mu, alpha, w_init):
 
 def compute_loss_bound_variance_term(H_j, H, H_inv, sigma_noise, sigma_dp, d, T):
     val = (2 / T) * \
-                    np.trace(H_j @ H_inv
-                             @ (sigma_noise ** 2 * H + sigma_dp * np.eye(d))
-                             @ H_inv)
+          np.trace(H_j @ H_inv
+                   @ (sigma_noise ** 2 * H + sigma_dp * np.eye(d))
+                   @ H_inv)
     return val
 
 
@@ -378,7 +381,7 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
                                 delta: float, gamma: float, T: int, s: int,
                                 w_star,
                                 sigma_noise=1., H=None, H_j=None):
-    assert j in [0,1], "Subgroup j must be 0 or 1."
+    assert j in [0, 1], "Subgroup j must be 0 or 1."
     attrs = df['sensitive'].values
     # "Alpha" is the fraction of observations in group j.
     alpha = (attrs == j).mean()
