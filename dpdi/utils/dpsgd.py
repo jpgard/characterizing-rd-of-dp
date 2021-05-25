@@ -367,7 +367,7 @@ def compute_loss_bound_bias_term(X, y, w_star, gamma, T, s, mu, alpha, w_init):
 def compute_loss_bound_variance_term(H_j, H, H_inv, sigma_noise, sigma_dp, d, T):
     val = (2 / T) * \
           np.trace(H_j @ H_inv
-                   @ (sigma_noise ** 2 * H + sigma_dp * np.eye(d))
+                   @ (sigma_noise ** 2 * H + sigma_dp ** 2 * np.eye(d))
                    @ H_inv)
     return val
 
