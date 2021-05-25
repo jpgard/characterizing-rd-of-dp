@@ -398,10 +398,8 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     #  we ignore the intercept term
     # . which is associated with an eigenvalue of zero.
     if 'intercept' in df.columns:
-        print("[DEBUG] intercept detected; taking second-smallest eigenvalue for mu.")
         mu = np.sort(np.linalg.eigvals(H))[1]
     else:
-        print("[DEBUG] no detected; taking smallest eigenvalue for mu.")
         mu = np.sort(np.linalg.eigvals(H))[0]
     L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
     sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
