@@ -377,8 +377,7 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
                     np.trace(H_j @ H_inv
                              @ (sigma_noise ** 2 * H + sigma_dp * np.eye(d))
                              @ H_inv)
-    resamp_term = ((2 / n) * ((1 + T ** 2 * gamma) / (T * gamma)) *
-                   np.trace(H_j @ H_inv * sigma_noise ** 2))
+    resamp_term = ((2 / n * T * gamma) * np.trace(H_j @ H_inv * sigma_noise ** 2))
     results = {
         "bias_term": bias_term,
         "variance_term": variance_term,
