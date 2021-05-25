@@ -454,8 +454,9 @@ def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbos
         print("[INFO] sampling {} / {} from 0".format(n_0_sample, n_0))
     idxs_sample_0 = np.random.choice(idxs_0, size=n_0_sample, replace=False)
     idxs_sample_1 = np.random.choice(idxs_1, size=n_1_sample, replace=False)
-    # subset the data
+    # subset the data, and shuffle it
     df_alpha = pd.concat((df.iloc[idxs_sample_0], df.iloc[idxs_sample_1]), axis=0)
+    df_alpha = df_alpha.sample(frac=1)
     # Compute dpsgd
     _, _, w_hat_bar_sgd = tail_averaged_sgd(
         X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
