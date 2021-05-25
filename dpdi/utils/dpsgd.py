@@ -38,11 +38,11 @@ def compute_mse(X, y, w_hat):
     return test_err
 
 
-def build_loader(X, y, batch_size=64, shuffle=False):
+def build_loader(X, y, batch_size=64, shuffle=False, replacement=False):
     inputs = torch.from_numpy(X).double()
     targets = torch.from_numpy(y).double()
     train_ds = torch.utils.data.TensorDataset(inputs, targets)
-    resampling_sampler = torch.utils.data.RandomSampler(train_ds, replacement=True,
+    resampling_sampler = torch.utils.data.RandomSampler(train_ds, replacement=replacement,
                                                         num_samples=batch_size)
     loader = torch.utils.data.DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle,
                                          sampler=resampling_sampler)
