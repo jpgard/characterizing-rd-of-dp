@@ -430,7 +430,6 @@ def compute_nmax(df, alpha_grid, verbose=True):
 def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbosity):
     n = len(df)
     T = n - s
-    g = df.sensitive.values
     idxs_0 = sensitive_subgroup_indices(df, 0)
     idxs_1 = sensitive_subgroup_indices(df, 1)
     n_0 = len(idxs_0)
