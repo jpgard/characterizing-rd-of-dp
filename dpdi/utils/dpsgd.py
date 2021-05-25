@@ -145,6 +145,15 @@ def compute_rho_lr(H_min: np.array, H_maj: np.array, alpha, sigma_dp, sigma_nois
     return rho_lr
 
 
+def compute_phi_lr(H_min, H_maj, alpha):
+    H_alpha = (1 - alpha)*H_min + alpha*H_maj
+    H_inv = np.linalg.pinv(H_alpha)
+    phi = max(np.trace(H_min @ H_inv) / np.trace(H_maj @ H_inv),
+              np.trace(H_maj @ H_inv) / np.trace(H_min @ H_inv))
+    return phi
+
+
+
 def print_dpsgd_diagnostics(L_1, L_2, L_3, sigma_dp, n, delta):
     """Print various important quantities used to compute sigma_DP."""
     print(f"L_1 = {L_1}; L_2 = {L_2}; L_3 = {L_3}")
