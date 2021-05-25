@@ -104,17 +104,17 @@ def compute_sigma_dp(L_1, L_2, L_3, delta, eps: float):
 
 
 def compute_disparity(X: np.array, g: np.array, y: np.array, sgd_w_hat: np.array,
-                      dpsgd_w_hat: np.array, dpols_w_hat=None):
+                      dpsgd_w_hat: np.array, dpols_w_hat=None, w_star=None):
     """Compute the quantities defined as rho and phi in the paper, along with their
     constituents."""
     X_minor = X[g == 0, :]
     y_minor = y[g == 0]
-    loss_sgd_0 = np.mean(((X_minor @ sgd_w_hat) - y_minor) ** 2)
     X_major = X[g == 1, :]
     y_major = y[g == 1]
-    loss_sgd_1 = np.mean(((X_major @ sgd_w_hat) - y_major) ** 2)
-    loss_dpsgd_0 = np.mean(((X_minor @ dpsgd_w_hat) - y_minor) ** 2)
-    loss_dpsgd_1 = np.mean(((X_major @ dpsgd_w_hat) - y_major) ** 2)
+    loss_sgd_1 = compute_mse(X_major, y_major, sgd_w_hat)
+    loss_sgd_0 = compute_mse(X_minor, y_minor, sgd_w_hat)
+    loss_dpsgd_0 = compute_mse(X_minor, y_minor, dpsgd_w_hat)
+    loss_dpsgd_1 = compute_mse(X_major, y_major, dpsgd_w_hat)
 
     rho = (loss_dpsgd_0 - loss_dpsgd_1) / (loss_sgd_0 - loss_sgd_1)
     phi = (loss_dpsgd_0 - loss_sgd_0) / (loss_dpsgd_1 - loss_sgd_1)
@@ -126,8 +126,11 @@ def compute_disparity(X: np.array, g: np.array, y: np.array, sgd_w_hat: np.array
                "loss_sgd_0": loss_sgd_0,
                "loss_sgd_1": loss_sgd_1}
     if dpols_w_hat is not None:
-        metrics["loss_dpols_0"] = np.mean(((X_minor @ dpols_w_hat) - y_minor) ** 2)
-        metrics["loss_dpols_1"] = np.mean(((X_major @ dpols_w_hat) - y_major) ** 2)
+        metrics["loss_dpols_0"] = compute_mse(X_minor, y_minor, dpols_w_hat)
+        metrics["loss_dpols_1"] = compute_mse(X_major, y_major, dpols_w_hat)
+    if w_star is not None:
+        metrics["loss_wstar_0"] = compute_mse(X_minor, y_minor, w_star)
+        metrics["loss_wstar_1"] = compute_mse(X_major, y_major, w_star)
     return metrics
 
 
@@ -345,7 +348,7 @@ def disparity_experiments(train_df, test_df, T, s, lr, epsgrid, wstar, delta=1e-
         disparity_metrics = compute_disparity(
             X=test_df.drop(['sensitive', 'target'], axis=1).values,
             g=test_df.sensitive.values, y=test_df.target.values, sgd_w_hat=w_hat_bar_sgd,
-            dpsgd_w_hat=w_hat_bar_dpsgd, dpols_w_hat=w_hat_dpols)
+            dpsgd_w_hat=w_hat_bar_dpsgd, dpols_w_hat=w_hat_dpols, w_star=wstar)
         disparity_metrics["eps"] = eps
         results.append(disparity_metrics)
     return pd.DataFrame(results)
@@ -465,7 +468,7 @@ def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbos
     disparity_metrics = compute_disparity(
         X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
         g=df_alpha.sensitive.values, y=df_alpha.target.values,
-        sgd_w_hat=w_hat_bar_sgd, dpsgd_w_hat=w_hat_bar_dpsgd)
+        sgd_w_hat=w_hat_bar_sgd, dpsgd_w_hat=w_hat_bar_dpsgd, w_star=wstar)
     disparity_metrics["iternum"] = iternum
     disparity_metrics["alpha"] = alpha
     return disparity_metrics
