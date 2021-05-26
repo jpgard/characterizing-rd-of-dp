@@ -173,7 +173,7 @@ def tail_average_iterates(w, T, s):
 
 
 def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
-           random_seed=RANDOM_SEED):
+           random_seed=RANDOM_SEED, fixed_sdp=None):
     """Implements Algorithm 1 (DP-SGD), with fixed seed for reproducibility.
 
     Verbosity: 0 = no output; 1 = print basic DP-SGD quantities; 2 = print DP-SGD
@@ -185,7 +185,11 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
     assert d == len(w_star), "shape mismatch between X and w_star"
     # Compute the various constants needed for the algorithm.
     L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
-    sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
+    if fixed_sdp:
+        print("[INFO] sdp being set to specified value {}".format(fixed_sdp))
+        sigma_dp = fixed_sdp
+    else:
+        sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
     if verbosity > 0:
         print_dpsgd_diagnostics(L_1, L_2, L_3, sigma_dp=sigma_dp, n=n, delta=delta)
 
@@ -380,7 +384,8 @@ def compute_loss_bound_resamp_term(H_j, H_inv, sigma_noise, n, T, gamma):
 def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
                                 delta: float, gamma: float, T: int, s: int,
                                 w_star,
-                                sigma_noise=1., H=None, H_j=None):
+                                sigma_noise=1., H=None, H_j=None,
+                                fixed_sdp=None):
     assert j in [0, 1], "Subgroup j must be 0 or 1."
     attrs = df['sensitive'].values
     # "Alpha" is the fraction of observations in group j.
@@ -402,7 +407,11 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     else:
         mu = np.sort(np.linalg.eigvals(H))[0]
     L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
-    sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
+    if fixed_sdp:
+        print("[INFO] sdp being set to specified value {}".format(fixed_sdp))
+        sigma_dp = fixed_sdp
+    else:
+        sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
     bias_term = compute_loss_bound_bias_term(X, y, w_star, gamma, T, s, mu, alpha, w_init)
     variance_term = compute_loss_bound_variance_term(H_j, H, H_inv, sigma_noise, sigma_dp,
                                                      d, T)
@@ -437,7 +446,8 @@ def compute_nmax(df, alpha_grid, verbose=True):
     return min(n_max_0, n_max_1)
 
 
-def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbosity):
+def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbosity,
+                     fixed_sdp=None):
     n = len(df)
     T = n - s
     idxs_0 = sensitive_subgroup_indices(df, 0)
@@ -471,7 +481,8 @@ def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbos
         lr=lr,
         w_star=wstar,
         batch_size=1,
-        verbosity=0
+        verbosity=0,
+        fixed_sdp=fixed_sdp
     )
     disparity_metrics = compute_disparity(
         X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
