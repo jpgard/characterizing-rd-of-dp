@@ -394,6 +394,7 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     y = df['target'].values
     w_init = np.zeros_like(w_star)
     n, d = X.shape
+    s_alpha = s * alpha
     if H_j is None:  # True H_j not known; estimate from data
         H_j = np.cov(X[attrs == j], rowvar=False)
     if H is None:  # True H not known; estimate from data
@@ -403,16 +404,17 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     #  we ignore the intercept term
     # . which is associated with an eigenvalue of zero.
     if 'intercept' in df.columns:
-        mu = np.sort(np.linalg.eigvals(H))[1]
+        eig_to_take = 1
     else:
-        mu = np.sort(np.linalg.eigvals(H))[0]
+        eig_to_take = 0
+    mu_j = np.sort(np.linalg.eigvals(H_j))[eig_to_take]
     L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
     if fixed_sdp:
         print("[INFO] sdp being set to specified value {}".format(fixed_sdp))
         sigma_dp = fixed_sdp
     else:
         sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
-    bias_term = compute_loss_bound_bias_term(X, y, w_star, gamma, T, s, mu, alpha, w_init)
+    bias_term = compute_loss_bound_bias_term(X, y, w_star, gamma, T, s_alpha, mu_j, alpha, w_init)
     variance_term = compute_loss_bound_variance_term(H_j, H, H_inv, sigma_noise, sigma_dp,
                                                      d, T)
     resamp_term = compute_loss_bound_resamp_term(H_j, H_inv, sigma_noise, n, T, gamma)
