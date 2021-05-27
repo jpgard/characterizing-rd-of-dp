@@ -409,7 +409,7 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
                                 delta: float, gamma: float, T: int, s: int,
                                 w_star,
                                 sigma_noise=1., H=None, H_j=None,
-                                fixed_sdp=None):
+                                fixed_sdp=None, verbosity=0):
     assert j in [0, 1], "Subgroup j must be 0 or 1."
     attrs = df['sensitive'].values
     # "Alpha" is the fraction of observations in group j.
@@ -434,10 +434,11 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
     mu_j = np.sort(np.linalg.eigvals(H_j))[eig_to_take]
     L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
     if fixed_sdp:
-        print("[INFO] sdp being set to specified value {}".format(fixed_sdp))
         sigma_dp = fixed_sdp
     else:
         sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
+    if verbosity > 0:
+        print("[INFO] sdp is {}".format(sigma_dp))
     bias_term = compute_loss_bound_bias_term(X, y, w_star, gamma, T, s_alpha, mu_j, alpha,
                                              w_init)
     variance_term = compute_loss_bound_variance_term(H_j, H, H_inv, sigma_noise, sigma_dp,
