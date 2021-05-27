@@ -16,6 +16,31 @@ import diffprivlib
 RANDOM_SEED = 983445
 
 
+def compute_gamma_max(X, H, sigma_noise, batch_size=1):
+    """Compute the max learning rate via equation (3) of Jain et al."""
+    d = H.shape[0]
+    H_L = np.outer(H, np.eye(d))
+    H_R = np.outer(np.eye(d), H)
+    Sigma = (sigma_noise ** 2) * H
+    H_L_plus_H_R_inv = np.linalg.pinv(H_L + H_R)
+    H_L_plus_H_R_inv_Sigma = H_L_plus_H_R_inv @ Sigma
+    rho_numerator = d * np.linalg.norm(H_L_plus_H_R_inv_Sigma, ord=2)
+    rho_denominator = np.trace(H_L_plus_H_R_inv_Sigma)
+    rho_m = rho_numerator / rho_denominator
+    R_squared = np.linalg.norm(X, axis=1, ord=2).max() ** 2
+    gamma_max = (2 * batch_size) / (
+            R_squared * rho_m + (batch_size - 1) * np.linalg.norm(H, ord=2))
+    return gamma_max
+
+
+def compute_gamma_max_from_subgroups(X: np.array, g, H_major, H_minor, sigma_noise,
+                                     batch_size=1):
+    """Compute the max learning rate for both subgroups, returning whichever is lower."""
+    gamma_max_major = compute_gamma_max(X[g == 1], H_major, sigma_noise, batch_size)
+    gamma_max_minor = compute_gamma_max(X[g == 0], H_minor, sigma_noise, batch_size)
+    return min(gamma_max_minor, gamma_max_major)
+
+
 def get_wstar(df, use_ridge=False, ridgegrid=[0.001, 0.01, 0.1, 1., 10, 100, 1000]):
     """Compute the parameters via OLS (with no intercept term).
 
@@ -186,7 +211,6 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
     # Compute the various constants needed for the algorithm.
     L_1, L_2, L_3 = compute_sdp_constants(X, y, w_star)
     if fixed_sdp:
-        print("[INFO] sdp being set to specified value {}".format(fixed_sdp))
         sigma_dp = fixed_sdp
     else:
         sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
@@ -414,7 +438,8 @@ def compute_subgroup_loss_bound(df: pd.DataFrame, j: int, eps: float,
         sigma_dp = fixed_sdp
     else:
         sigma_dp = compute_sigma_dp(L_1, L_2, L_3, delta=delta, eps=eps)
-    bias_term = compute_loss_bound_bias_term(X, y, w_star, gamma, T, s_alpha, mu_j, alpha, w_init)
+    bias_term = compute_loss_bound_bias_term(X, y, w_star, gamma, T, s_alpha, mu_j, alpha,
+                                             w_init)
     variance_term = compute_loss_bound_variance_term(H_j, H, H_inv, sigma_noise, sigma_dp,
                                                      d, T)
     resamp_term = compute_loss_bound_resamp_term(H_j, H_inv, sigma_noise, n, T, gamma)
