@@ -15,6 +15,32 @@ import diffprivlib
 
 RANDOM_SEED = 983445
 
+def compute_gamma_max_from_subgroups(X: np.array, g, H_major, H_minor, sigma_noise,
+                                     batch_size=1):
+    # TODO: this seems to be brokedn.
+    """Compute the max learning rate for both subgroups, returning whichever is lower."""
+    gamma_max_major = compute_gamma_max(X[g == 1], H_major, sigma_noise, batch_size)
+    gamma_max_minor = compute_gamma_max(X[g == 0], H_minor, sigma_noise, batch_size)
+    return min(gamma_max_minor, gamma_max_major)
+
+
+def compute_rho_lr_numerator(H_min: np.array, H_maj: np.array, alpha, sigma_dp):
+    """Compute the quantity defined as \rho_{LR} in the paper."""
+    H_min = maybe_cast_scalar_to_square_ary(H_min)
+    H_maj = maybe_cast_scalar_to_square_ary(H_maj)
+    H = alpha * H_maj + (1 - alpha) * H_min
+    H_inv = np.linalg.pinv(H)
+    H_minus2 = H_inv @ H_inv
+    return np.trace((H_min - H_maj) @ H_minus2) * sigma_dp ** 2
+
+def compute_rho_lr_denominator(H_min: np.array, H_maj: np.array, alpha, sigma_noise=1.):
+    """Compute the quantity defined as \rho_{LR} in the paper."""
+    H_min = maybe_cast_scalar_to_square_ary(H_min)
+    H_maj = maybe_cast_scalar_to_square_ary(H_maj)
+    H = alpha * H_maj + (1 - alpha) * H_min
+    H_inv = np.linalg.pinv(H)
+    return (np.trace((H_min - H_maj) @ H_inv) * sigma_noise ** 2)
+
 
 def compute_gamma_max(X, H, sigma_noise, batch_size=1):
     """Compute the max learning rate via equation (3) of Jain et al."""
@@ -518,6 +544,8 @@ def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbos
         sgd_w_hat=w_hat_bar_sgd, dpsgd_w_hat=w_hat_bar_dpsgd, w_star=wstar)
     disparity_metrics["iternum"] = iternum
     disparity_metrics["alpha"] = alpha
+    disparity_metrics["w_hat_bar_sgd"] = w_hat_bar_sgd
+    disparity_metrics["w_hat_bar_dpsgd"] = w_hat_bar_dpsgd
     return disparity_metrics
 
 
