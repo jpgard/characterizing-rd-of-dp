@@ -553,6 +553,8 @@ if __name__ == '__main__':
                         default=False,
                         help="If true, will print the mean and STD of the"
                              "dataset by channel prior to beginning training.")
+    parser.add_argument("--random_seed", default=5, type=int,
+                        help="random torch seed to use.")
     args = parser.parse_args()
     d = datetime.now().strftime('%b.%d_%H.%M.%S')
 
@@ -595,8 +597,6 @@ if __name__ == '__main__':
     dp = helper.params['dp']
     mu = helper.params.get('mu')
 
-    reseed(5)
-
     criterion = get_criterion(helper)
     is_regression = helper.params.get('criterion') == 'mse'
 
@@ -606,7 +606,7 @@ if __name__ == '__main__':
     if dp and sigma != 0:
         helper.compute_rdp(sigma)
     print('[DEBUG] num_classes is %s' % num_classes)
-    reseed(5)
+    reseed(args.random_seed)
     net = get_net(helper, num_classes)
 
     if helper.params.get('multi_gpu', False):
