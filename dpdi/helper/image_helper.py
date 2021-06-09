@@ -1,5 +1,7 @@
 import logging
 
+DATA_ROOT = './data'
+
 logger = logging.getLogger('logger')
 
 from collections import defaultdict
@@ -225,13 +227,13 @@ class ImageHelper(Helper):
         if dataset == 'cifar10':
             self.train_dataset = CIFAR10WithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root='../data', train=True, download=True, transform=transform_train)
+                root=DATA_ROOT, train=True, download=True, transform=transform_train)
             self.test_dataset = CIFAR10WithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root='../data', train=False, transform=transform_test)
+                root=DATA_ROOT, train=False, transform=transform_test)
             self.unnormalized_test_dataset = CIFAR10WithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root='../data', train=False, transform=transforms.ToTensor())
+                root=DATA_ROOT, train=False, transform=transforms.ToTensor())
 
         elif dataset == 'cifar100':
             self.train_dataset = datasets.CIFAR100('./data', train=True, download=True,
@@ -243,19 +245,19 @@ class ImageHelper(Helper):
             self.train_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
 
-                root='../data', train=True, download=True,
+                root=DATA_ROOT, train=True, download=True,
                 transform=transforms.Compose([
                     transforms.ToTensor(),
                     transforms.Normalize((0.1307,), (0.3081,))]))
 
             self.test_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root='../data', train=False, transform=transforms.Compose([
+                root=DATA_ROOT, train=False, transform=transforms.Compose([
                     transforms.ToTensor(),
                     transforms.Normalize((0.1307,), (0.3081,))]))
             self.unnormalized_test_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root='../data', train=False, transform=transforms.ToTensor())
+                root=DATA_ROOT, train=False, transform=transforms.ToTensor())
 
         if classes_to_keep:
             # Filter the training data to only contain the specified classes.
