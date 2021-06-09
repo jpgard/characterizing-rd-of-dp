@@ -113,7 +113,7 @@ def maybe_cast_scalar_to_square_ary(a: np.array) -> np.array:
 
 def build_dataset(H_min: np.array, H_maj: np.array, mu_min: np.array, mu_maj: np.array,
                   n: int, alpha: float, w_star: np.ndarray,
-                  sd_eta: float = 1., verbose=True):
+                  sd_eta, verbose=True):
     """
     Build a dataset according to the parameters.
     H_0:
