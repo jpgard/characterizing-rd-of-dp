@@ -219,8 +219,8 @@ def print_dpsgd_diagnostics(L_1, L_2, L_3, sigma_dp, n, delta):
     print("sigma_dp: %f" % sigma_dp)
 
 
-def tail_average_iterates(w, T, s):
-    return np.vstack(w[-(T - s):]).mean(axis=0)
+def tail_average_iterates(w, s):
+    return np.vstack(w[-s:]).mean(axis=0)
 
 
 def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
@@ -283,7 +283,7 @@ def dp_sgd(X, y, T, delta, eps, s, lr, w_star, verbosity=2, batch_size=64,
                 if verbosity > 0:
                     print("[INFO] completed %s iterations of DP-SGD." % t)
                 break
-    w_hat_bar = tail_average_iterates(iterates, T, s)
+    w_hat_bar = tail_average_iterates(iterates, s)
     return iterates, losses, w_hat_bar
 
 
@@ -331,7 +331,7 @@ def tail_averaged_sgd(X, y, T, s, lr, verbosity=2, batch_size=64,
                 if verbosity > 0:
                     print("[INFO] completed %s iterations of SGD." % t)
                 break
-    w_hat_bar = tail_average_iterates(iterates, T, s)
+    w_hat_bar = tail_average_iterates(iterates, s)
     return iterates, losses, w_hat_bar
 
 
@@ -500,12 +500,12 @@ def compute_nmax(df, alpha_grid, verbose=True):
     return min(n_max_0, n_max_1)
 
 
-def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbosity,
-                     fixed_sdp=None):
-    n = len(df)
+def alpha_experiment(df_train, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbosity,
+                     fixed_sdp=None, df_test=None):
+    n = len(df_train)
     T = n - s
-    idxs_0 = sensitive_subgroup_indices(df, 0)
-    idxs_1 = sensitive_subgroup_indices(df, 1)
+    idxs_0 = sensitive_subgroup_indices(df_train, 0)
+    idxs_1 = sensitive_subgroup_indices(df_train, 1)
     n_0 = len(idxs_0)
     n_1 = len(idxs_1)
 
@@ -517,7 +517,7 @@ def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbos
     idxs_sample_0 = np.random.choice(idxs_0, size=n_0_sample, replace=False)
     idxs_sample_1 = np.random.choice(idxs_1, size=n_1_sample, replace=False)
     # subset the data, and shuffle it
-    df_alpha = pd.concat((df.iloc[idxs_sample_0], df.iloc[idxs_sample_1]), axis=0)
+    df_alpha = pd.concat((df_train.iloc[idxs_sample_0], df_train.iloc[idxs_sample_1]))
     df_alpha = df_alpha.sample(frac=1)
     # Compute dpsgd
     _, _, w_hat_bar_sgd = tail_averaged_sgd(
@@ -538,9 +538,12 @@ def alpha_experiment(df, wstar, iternum, alpha, eps, delta, lr, n_max, s, verbos
         verbosity=0,
         fixed_sdp=fixed_sdp
     )
+    if df_test is None:
+        print("[INFO] warning, evaluating on train data since df_test not given.")
+        df_test = df_train
     disparity_metrics = compute_disparity(
-        X=df_alpha.drop(['sensitive', 'target'], axis=1).values,
-        g=df_alpha.sensitive.values, y=df_alpha.target.values,
+        X=df_test.drop(['sensitive', 'target'], axis=1).values,
+        g=df_test.sensitive.values, y=df_test.target.values,
         sgd_w_hat=w_hat_bar_sgd, dpsgd_w_hat=w_hat_bar_dpsgd, w_star=wstar)
     disparity_metrics["iternum"] = iternum
     disparity_metrics["alpha"] = alpha
