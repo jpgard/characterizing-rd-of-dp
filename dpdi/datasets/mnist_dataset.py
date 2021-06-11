@@ -1,12 +1,17 @@
+import os
 from torchvision import datasets
 import torch
-from PIL import Image
 import numpy as np
+from einops import rearrange
+
+from dpdi.utils.utils import np_to_pil
+
 
 class MNISTWithAttributesDataset(datasets.MNIST):
     """A clone of the MNIST dataset, but with
     minority/majority attribute annotatoins."""
-    def __init__(self, minority_keys:list, majority_keys:list, **kwargs):
+
+    def __init__(self, minority_keys: list, majority_keys: list, **kwargs):
         super(MNISTWithAttributesDataset, self).__init__(**kwargs)
         self.minority_keys = minority_keys
         self.majority_keys = majority_keys
@@ -14,7 +19,7 @@ class MNISTWithAttributesDataset(datasets.MNIST):
     @property
     def keys(self):
         return self.minority_keys + self.majority_keys
-    
+
     def apply_classes_to_keep(self, classes_to_keep):
         """
         Filter the dataset to only contain observations with labels in classes_to_keep.
@@ -28,7 +33,7 @@ class MNISTWithAttributesDataset(datasets.MNIST):
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
-        img = Image.fromarray(img.numpy(), mode='L')
+        img = np_to_pil(img.numpy())
 
         if self.transform is not None:
             img = self.transform(img)
@@ -44,5 +49,35 @@ class MNISTWithAttributesDataset(datasets.MNIST):
         for k in self.majority_keys:
             is_k = (batch_targets == k)
             batch_attributes += is_k.type(torch.long)
-        assert torch.max(batch_attributes) <= 1., "Sanity check on binarized grouped labels."
+        assert torch.max(
+            batch_attributes) <= 1., "Sanity check on binarized grouped labels."
         return batch_attributes
+
+
+class MultiMNISTDataset(MNISTWithAttributesDataset):
+    """A stacked-MNIST dataset for regression tasks."""
+    def __init__(self, minority_keys: list, majority_keys: list, is_train: bool, **kwargs):
+        super(MultiMNISTDataset, self).__init__(**kwargs)
+        self.minority_keys = minority_keys
+        self.majority_keys = majority_keys
+        self.attrs = None
+        self.load_data(kwargs["root_dir"], is_train)
+
+    def load_data(self, root_dir, is_train: bool):
+        npz_data = np.load(os.path.join(root_dir, "mnist_multi", "mnist_multi.npz"))
+        if is_train:
+            data = npz_data["x_tr"]
+            self.targets = torch.from_numpy(npz_data["y_tr"])
+            self.attrs = torch.from_numpy(npz_data["z_tr"])
+        else:
+            data = npz_data["x_te"]
+            self.targets = torch.from_numpy(npz_data["y_te"])
+            self.attrs = torch.from_numpy(npz_data["z_te"])
+        # add a channels dim to data
+        data = rearrange(data, 'b h w -> b c h w', c=1)
+        self.data = torch.from_numpy(data)
+        return
+
+    def get_attribute_annotations(self, idxs):
+        attrs = np.isin(self.attrs[idxs], self.majority_keys).astype(int)
+        return attrs
