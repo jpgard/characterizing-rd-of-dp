@@ -98,10 +98,10 @@ class Net(SimpleNet):
 
 
 class RegressionNet(SimpleNet):
-    def __init__(self):
+    def __init__(self, input_channels=3):
         super(RegressionNet, self).__init__()
         self.model = torch.nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=3, stride=1), # 64 --> 62
+            nn.Conv2d(input_channels, 16, kernel_size=3, stride=1), # 64 --> 62
             nn.ReLU(),
             nn.Conv2d(16, 32, kernel_size=3, stride=1), # 62 --> 60
             nn.ReLU(),
@@ -111,11 +111,6 @@ class RegressionNet(SimpleNet):
             nn.Conv2d(64, 64, kernel_size=3, stride=1), # 28 --> 26
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # 26 --> 13
-            # nn.Conv2d(32, 64, kernel_size=3, stride=1),
-            # nn.ReLU(),
-            # nn.Conv2d(64, 64, kernel_size=3, stride=1),
-            # nn.ReLU(),
-            # nn.MaxPool2d(2, 2),
             nn.Flatten(),
             nn.Linear(13*13*64, 256),
             nn.ReLU(),
@@ -128,9 +123,9 @@ class RegressionNet(SimpleNet):
 
 
 class FlexiNet(SimpleNet):
-    def __init__(self, input_channel, output_dim):
+    def __init__(self, input_channels, output_dim):
         super(FlexiNet, self).__init__()
-        self.conv1 = nn.Conv2d(input_channel, 20, 5, 1)
+        self.conv1 = nn.Conv2d(input_channels, 20, 5, 1)
         self.conv2 = nn.Conv2d(20, 50, 5, 1)
         self.fc1 = nn.Linear(5 * 5 * 50, 500)
         self.fc2 = nn.Linear(500, output_dim)
