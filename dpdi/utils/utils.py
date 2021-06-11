@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import torch
+from PIL import Image
 from torch.autograd import Variable
 from torch.utils.data.sampler import Sampler
 from sklearn.metrics import confusion_matrix
@@ -201,3 +202,8 @@ def plot_confusion_matrix(correct_labels, predict_labels,
     fig.set_tight_layout(True)
 
     return fig, cm
+
+
+def np_to_pil(img: np.array) -> Image:
+    """Convert a numpy array to PIL.Image."""
+    return Image.fromarray(img, mode='L')
