@@ -20,7 +20,7 @@ number_of_entries_test: 3000
 optimizer: SGD
 
 save_model: True
-dataset: multimmnist
+dataset: multimnist
 model: regressionnet
 scheduler: False
 
