@@ -1,6 +1,5 @@
 import logging
 
-DATA_ROOT = './data'
 
 logger = logging.getLogger('logger')
 
@@ -18,7 +17,7 @@ from torchvision import datasets, transforms
 import numpy as np
 from dpdi.datasets.celeba_dataset import CelebADataset, get_celeba_transforms
 from dpdi.datasets.lfw_dataset import LFWDataset, get_lfw_transforms
-from dpdi.datasets.mnist_dataset import MNISTWithAttributesDataset
+from dpdi.datasets.mnist_dataset import MNISTWithAttributesDataset, MultiMNISTDataset
 from dpdi.datasets.mc10_dataset import CIFAR10WithAttributesDataset
 from dpdi.datasets.zillow_dataset import ZillowDataset
 from dpdi.datasets.dsprites import DspritesDataset
@@ -26,6 +25,9 @@ from dpdi.datasets.imdb_wiki import IMDBWikiDataset
 from collections import OrderedDict
 
 POISONED_PARTICIPANT_POS = 0
+MNIST_TRANSFORM = transforms.Compose([transforms.ToTensor(), MNIST_NORMALIZATION_TRANSFORM])
+MNIST_NORMALIZATION_TRANSFORM = transforms.Normalize((0.1307,), (0.3081,))
+DATA_ROOT = './data'
 
 
 def apply_alpha_to_dataset(dataset, alpha: float = None,
@@ -246,20 +248,30 @@ class ImageHelper(Helper):
                 minority_keys=minority_keys, majority_keys=majority_keys,
 
                 root=DATA_ROOT, train=True, download=True,
-                transform=transforms.Compose([
-                    transforms.ToTensor(),
-                    transforms.Normalize((0.1307,), (0.3081,))]))
+                transform=MNIST_TRANSFORM)
 
             self.test_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root=DATA_ROOT, train=False, transform=transforms.Compose([
-                    transforms.ToTensor(),
-                    transforms.Normalize((0.1307,), (0.3081,))]))
+                root=DATA_ROOT, train=False, transform=MNIST_TRANSFORM)
             self.unnormalized_test_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
                 root=DATA_ROOT, train=False, transform=transforms.ToTensor())
         elif dataset == 'multimnist':
-            # TODO
+            self.train_dataset = MultiMNISTDataset(minority_keys=minority_keys,
+                                                   majority_keys=majority_keys,
+                                                   is_train=True,
+                                                   root_dir=DATA_ROOT,
+                                                   transform=MNIST_TRANSFORM)
+            self.test_dataset = MultiMNISTDataset(minority_keys=minority_keys,
+                                                  majority_keys=majority_keys,
+                                                  is_train=False,
+                                                  root_dir=DATA_ROOT,
+                                                  transform=MNIST_TRANSFORM)
+            self.unnormalized_test_dataset = MultiMNISTDataset(minority_keys=minority_keys,
+                                                               majority_keys=majority_keys,
+                                                               is_train=False,
+                                                               root_dir=DATA_ROOT,
+                                                               transform=transforms.ToTensor())
 
         if classes_to_keep:
             # Filter the training data to only contain the specified classes.
