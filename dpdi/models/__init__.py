@@ -9,7 +9,7 @@ from dpdi.models.simple import FlexiNet, RegressionNet, Net
 from dpdi.models.word_model import RNNModel
 
 
-def get_net(helper, num_classes):
+def get_net(helper, num_classes, input_channels=3):
     model_type = helper.params['model']
     if model_type == 'densenet':
         net = DenseNet(num_classes=num_classes, depth=helper.params['densenet_depth'])
@@ -43,7 +43,7 @@ def get_net(helper, num_classes):
                        dropout=helper.params['dropout'],
                        tie_weights=helper.params['tied'])
     elif model_type == 'regressionnet':
-        net = RegressionNet()
+        net = RegressionNet(input_channels)
     else:
         net = Net(output_dim=num_classes)
     return net

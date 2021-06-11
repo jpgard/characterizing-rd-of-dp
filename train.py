@@ -607,7 +607,8 @@ if __name__ == '__main__':
         helper.compute_rdp(sigma)
     print('[DEBUG] num_classes is %s' % num_classes)
     reseed(args.random_seed)
-    net = get_net(helper, num_classes)
+    input_channels = 1 if 'mnist' in helper.params['dataset'] else 3
+    net = get_net(helper, num_classes, input_channels)
 
     if helper.params.get('multi_gpu', False):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
