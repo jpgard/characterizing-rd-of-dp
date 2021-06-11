@@ -25,8 +25,8 @@ from dpdi.datasets.imdb_wiki import IMDBWikiDataset
 from collections import OrderedDict
 
 POISONED_PARTICIPANT_POS = 0
-MNIST_TRANSFORM = transforms.Compose([transforms.ToTensor(), MNIST_NORMALIZATION_TRANSFORM])
 MNIST_NORMALIZATION_TRANSFORM = transforms.Normalize((0.1307,), (0.3081,))
+MNIST_TRANSFORM = transforms.Compose([transforms.ToTensor(), MNIST_NORMALIZATION_TRANSFORM])
 DATA_ROOT = './data'
 
 
