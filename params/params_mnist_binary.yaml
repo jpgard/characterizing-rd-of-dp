@@ -31,7 +31,7 @@ optimizer: SGD
 criterion: mse
 
 save_model: False
-dataset: mnist
+dataset: mmnist
 model: regressionnet
 densenet_depth: 100
 scheduler: False

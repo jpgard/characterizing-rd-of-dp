@@ -20,7 +20,7 @@ number_of_entries_test: 1000
 optimizer: SGD
 
 save_model: True
-dataset: mnist
+dataset: mmnist
 model: net
 scheduler: False
 

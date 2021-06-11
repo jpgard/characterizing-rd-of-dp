@@ -241,7 +241,7 @@ class ImageHelper(Helper):
 
             self.test_dataset = datasets.CIFAR100('./data', train=False,
                                                   transform=transform_test)
-        elif dataset == 'mnist':
+        elif dataset == 'mmnist':
             self.train_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
 
@@ -258,6 +258,8 @@ class ImageHelper(Helper):
             self.unnormalized_test_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
                 root=DATA_ROOT, train=False, transform=transforms.ToTensor())
+        elif dataset == 'multimnist':
+            # TODO
 
         if classes_to_keep:
             # Filter the training data to only contain the specified classes.
