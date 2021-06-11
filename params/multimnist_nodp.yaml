@@ -1,0 +1,29 @@
+test_batch_size: 100
+batch_size: 256
+num_microbatches: 256
+lr: 0.01
+momentum: 0.5
+decay: 0
+dp: False
+epochs: 120
+save_on_epochs: [10, 50, 100, 110]
+
+mu: 1.0
+
+ds_size: 11500
+
+minority_group_keys: [7, 3]
+positive_class_keys: [4, 3]
+negative_class_keys: [7, 6]
+fixed_n_train: 100000  # based on alpha \in [0.01, 0.99] with 50k samples per class
+number_of_entries_test: 3000
+optimizer: SGD
+
+save_model: True
+dataset: multimmnist
+model: regressionnet
+scheduler: False
+
+count_norm_cosine_per_batch: False
+
+csigma: 0.9
