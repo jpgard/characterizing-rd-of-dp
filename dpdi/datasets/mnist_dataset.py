@@ -62,6 +62,22 @@ class MultiMNISTDataset(MNISTWithAttributesDataset):
         self.attrs = None
         self.load_data(is_train)
 
+    def __getitem__(self, index: int):
+        img, target = self.data[index], int(self.targets[index])
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = np_to_pil(img.numpy())
+
+        if self.transform is not None:
+            img = self.transform(img)
+            img = torch.unsqueeze(img, 1)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, index, target
+
     def load_data(self, is_train: bool):
         npz_data = np.load(os.path.join(self.root, "mnist_multi", "mnist_multi.npz"))
         if is_train:
@@ -73,7 +89,6 @@ class MultiMNISTDataset(MNISTWithAttributesDataset):
             self.targets = torch.from_numpy(npz_data["y_te"])
             self.attrs = torch.from_numpy(npz_data["z_te"])
         # add a channels dim to data
-        data = np.expand_dims(data, axis=1)
         self.data = torch.from_numpy(data)
         return
 
