@@ -74,7 +74,7 @@ class MultiMNISTDataset(MNISTWithAttributesDataset):
             self.targets = torch.from_numpy(npz_data["y_te"])
             self.attrs = torch.from_numpy(npz_data["z_te"])
         # add a channels dim to data
-        data = rearrange(data, 'b h w -> b c h w', c=1)
+        data = np.expand_dims(data, axis=1)
         self.data = torch.from_numpy(data)
         return
 
