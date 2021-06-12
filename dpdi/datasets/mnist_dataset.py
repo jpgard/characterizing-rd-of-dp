@@ -53,14 +53,26 @@ class MNISTWithAttributesDataset(datasets.MNIST):
         return batch_attributes
 
 
-class MultiMNISTDataset(MNISTWithAttributesDataset):
+class MultiMNISTDataset(torch.utils.data.Dataset):
     """A stacked-MNIST dataset for regression tasks."""
-    def __init__(self, is_train: bool, root, **kwargs):
-        super(MultiMNISTDataset, self).__init__(
-            **kwargs, root=os.path.join(root, "MNIST"))
+    def __init__(self, minority_keys: list, majority_keys: list,
+                 is_train: bool, root, transform):
+        self.minority_keys = minority_keys
+        self.majority_keys = majority_keys
         self.root = root
         self.attrs = None
+        self.data = None
+        self.targets = None
+        self.transform = transform
+        self.target_transform = None
         self.load_data(is_train)
+
+    @property
+    def keys(self):
+        return self.minority_keys + self.majority_keys
+
+    def __len__(self):
+        return len(self.data)
 
     def __getitem__(self, index: int):
         img, target = self.data[index], int(self.targets[index])
@@ -95,3 +107,6 @@ class MultiMNISTDataset(MNISTWithAttributesDataset):
     def get_attribute_annotations(self, idxs):
         attrs = np.isin(self.attrs[idxs], self.majority_keys).astype(int)
         return attrs
+
+    def apply_classes_to_keep(self, classes_to_keep):
+        pass
