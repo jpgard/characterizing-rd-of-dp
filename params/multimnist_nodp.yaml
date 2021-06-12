@@ -22,6 +22,7 @@ optimizer: SGD
 save_model: True
 dataset: multimnist
 model: regressionnet
+root: /homes/gws/jpgard/differential-privacy-vs-fairness/data
 scheduler: False
 
 count_norm_cosine_per_batch: False
