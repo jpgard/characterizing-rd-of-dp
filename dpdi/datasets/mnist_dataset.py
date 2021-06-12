@@ -2,7 +2,6 @@ import os
 from torchvision import datasets
 import torch
 import numpy as np
-from einops import rearrange
 
 from dpdi.utils.utils import np_to_pil
 
