@@ -15,7 +15,7 @@ ds_size: 100000
 minority_group_keys: [7, 3]
 positive_class_keys: [4, 3]
 negative_class_keys: [7, 6]
-fixed_n_train: 100000  # based on alpha \in [0.01, 0.99] with 50k samples per class
+fixed_n_train: 100000
 number_of_entries_test: 3000
 optimizer: SGD
 

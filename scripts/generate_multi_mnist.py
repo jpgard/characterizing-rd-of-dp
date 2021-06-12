@@ -37,8 +37,8 @@ from dpdi.utils.utils import np_to_pil
 rotation = transforms.RandomRotation(80)
 
 
-def make_multi_mnist(mnist, max_num_imgs=4,
-                     classes=(7, 4, 6, 3), ims_per_class=50000):
+def make_multi_mnist(mnist, ims_per_class, max_num_imgs=4,
+                     classes=(7, 4, 6, 3)):
     ims_out = list()  # Contains the (28, 28) image array
     labs_out = list()  # Contains the regression label
     attrs_out = list()  # Contains the MNIST class of the stacked ims
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--max_num_imgs", default=4,
                         help="The maximum number of images that will be concatenated; "
                              "number of images to concatenate is sampled uniformly from [1, max_num_imgs].")
-    parser.add_argument("--ims_per_class", default=20000, type=int,
+    parser.add_argument("--ims_per_class", default=50000, type=int,
                         help="The number of stacked images to generate from each class.")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
