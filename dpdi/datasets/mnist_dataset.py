@@ -57,7 +57,7 @@ class MNISTWithAttributesDataset(datasets.MNIST):
 class MultiMNISTDataset(MNISTWithAttributesDataset):
     """A stacked-MNIST dataset for regression tasks."""
     def __init__(self, is_train: bool, **kwargs):
-        super(MultiMNISTDataset, self).__init__(**kwargs)
+        super(MultiMNISTDataset, self).__init__(**kwargs, download=True)
         self.attrs = None
         self.load_data(is_train)
 
