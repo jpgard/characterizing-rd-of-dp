@@ -228,48 +228,48 @@ class ImageHelper(Helper):
         if dataset == 'cifar10':
             self.train_dataset = CIFAR10WithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root=self.params.root, train=True, download=True, transform=transform_train)
+                root=self.params['root'], train=True, download=True, transform=transform_train)
             self.test_dataset = CIFAR10WithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root=self.params.root, train=False, transform=transform_test)
+                root=self.params['root'], train=False, transform=transform_test)
             self.unnormalized_test_dataset = CIFAR10WithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root=self.params.root, train=False, transform=transforms.ToTensor())
+                root=self.params['root'], train=False, transform=transforms.ToTensor())
 
         elif dataset == 'cifar100':
-            self.train_dataset = datasets.CIFAR100(self.params.root, train=True, download=True,
+            self.train_dataset = datasets.CIFAR100(self.params['root'], train=True, download=True,
                                                    transform=transform_train)
 
-            self.test_dataset = datasets.CIFAR100(self.params.root, train=False,
+            self.test_dataset = datasets.CIFAR100(self.params['root'], train=False,
                                                   transform=transform_test)
         elif dataset == 'mmnist':
             self.train_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
 
-                root=self.params.root, train=True, download=True,
+                root=self.params['root'], train=True, download=True,
                 transform=MNIST_TRANSFORM)
 
             self.test_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root=self.params.root, train=False, transform=MNIST_TRANSFORM)
+                root=self.params['root'], train=False, transform=MNIST_TRANSFORM)
             self.unnormalized_test_dataset = MNISTWithAttributesDataset(
                 minority_keys=minority_keys, majority_keys=majority_keys,
-                root=self.params.root, train=False, transform=transforms.ToTensor())
+                root=self.params['root'], train=False, transform=transforms.ToTensor())
         elif dataset == 'multimnist':
             self.train_dataset = MultiMNISTDataset(minority_keys=minority_keys,
                                                    majority_keys=majority_keys,
                                                    is_train=True,
-                                                   root=self.params.root,
+                                                   root=self.params['root'],
                                                    transform=MNIST_TRANSFORM)
             self.test_dataset = MultiMNISTDataset(minority_keys=minority_keys,
                                                   majority_keys=majority_keys,
                                                   is_train=False,
-                                                  root=self.params.root,
+                                                  root=self.params['root'],
                                                   transform=MNIST_TRANSFORM)
             self.unnormalized_test_dataset = MultiMNISTDataset(minority_keys=minority_keys,
                                                                majority_keys=majority_keys,
                                                                is_train=False,
-                                                               root=self.params.root,
+                                                               root=self.params['root'],
                                                                transform=transforms.ToTensor())
 
         if classes_to_keep:
