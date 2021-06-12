@@ -260,17 +260,17 @@ class ImageHelper(Helper):
             self.train_dataset = MultiMNISTDataset(minority_keys=minority_keys,
                                                    majority_keys=majority_keys,
                                                    is_train=True,
-                                                   root_dir=DATA_ROOT,
+                                                   root=DATA_ROOT,
                                                    transform=MNIST_TRANSFORM)
             self.test_dataset = MultiMNISTDataset(minority_keys=minority_keys,
                                                   majority_keys=majority_keys,
                                                   is_train=False,
-                                                  root_dir=DATA_ROOT,
+                                                  root=DATA_ROOT,
                                                   transform=MNIST_TRANSFORM)
             self.unnormalized_test_dataset = MultiMNISTDataset(minority_keys=minority_keys,
                                                                majority_keys=majority_keys,
                                                                is_train=False,
-                                                               root_dir=DATA_ROOT,
+                                                               root=DATA_ROOT,
                                                                transform=transforms.ToTensor())
 
         if classes_to_keep:

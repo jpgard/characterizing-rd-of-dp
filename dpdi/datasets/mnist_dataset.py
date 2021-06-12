@@ -56,13 +56,13 @@ class MNISTWithAttributesDataset(datasets.MNIST):
 
 class MultiMNISTDataset(MNISTWithAttributesDataset):
     """A stacked-MNIST dataset for regression tasks."""
-    def __init__(self, is_train: bool, root_dir, **kwargs):
+    def __init__(self, is_train: bool, **kwargs):
         super(MultiMNISTDataset, self).__init__(**kwargs)
         self.attrs = None
-        self.load_data(root_dir, is_train)
+        self.load_data(is_train)
 
-    def load_data(self, root_dir, is_train: bool):
-        npz_data = np.load(os.path.join(root_dir, "mnist_multi", "mnist_multi.npz"))
+    def load_data(self, is_train: bool):
+        npz_data = np.load(os.path.join(self.root, "mnist_multi", "mnist_multi.npz"))
         if is_train:
             data = npz_data["x_tr"]
             self.targets = torch.from_numpy(npz_data["y_tr"])
