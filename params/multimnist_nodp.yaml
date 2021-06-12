@@ -10,8 +10,6 @@ save_on_epochs: [10, 50, 100, 110]
 
 mu: 1.0
 
-ds_size: 11500
-
 minority_group_keys: [7, 3]
 positive_class_keys: [4, 3]
 negative_class_keys: [7, 6]

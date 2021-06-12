@@ -26,7 +26,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # These are datasets that yield tuples of (images, idxs, labels) instead of
 # (images,labels).
 
-TRIPLET_YIELDING_DATASETS = ('celeba', 'lfw', 'mnist', 'cifar10', 'zillow', 'dsprites', 'imdb-wiki')
+TRIPLET_YIELDING_DATASETS = ('celeba', 'lfw', 'mnist', 'multimnist',
+                             'cifar10', 'zillow', 'dsprites', 'imdb-wiki')
 
 # These are datasets where we explicitly track performance according to some majority/minority
 # attribute defined in the params. This shouldn't require a second module-level variable,
