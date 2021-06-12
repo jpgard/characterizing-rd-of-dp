@@ -56,10 +56,10 @@ class MNISTWithAttributesDataset(datasets.MNIST):
 
 class MultiMNISTDataset(MNISTWithAttributesDataset):
     """A stacked-MNIST dataset for regression tasks."""
-    def __init__(self, is_train: bool, **kwargs):
+    def __init__(self, is_train: bool, root_dir, **kwargs):
         super(MultiMNISTDataset, self).__init__(**kwargs)
         self.attrs = None
-        self.load_data(kwargs["root_dir"], is_train)
+        self.load_data(root_dir, is_train)
 
     def load_data(self, root_dir, is_train: bool):
         npz_data = np.load(os.path.join(root_dir, "mnist_multi", "mnist_multi.npz"))
